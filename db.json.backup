@@ -48,72 +48,11 @@
       ]
     },
     {
-      "id": "public::2026-05-09",
-      "userId": "public",
-      "dateKey": "2026-05-09",
-      "items": [
-        {
-          "id": "57fd92ca-e5d5-4abb-8b8f-4c4138497725",
-          "name": "Inniku Enna Panlam",
-          "startTime": "08:30",
-          "endTime": "10:15",
-          "status": "done",
-          "topics": []
-        },
-        {
-          "id": "695903d5-00ec-4b36-b1ce-ba20c54256a2",
-          "name": "DSA",
-          "startTime": "",
-          "endTime": "",
-          "status": "not_done",
-          "topics": []
-        },
-        {
-          "id": "30ebe5dc-f801-4322-a7b0-3ed30f8b8030",
-          "name": "Basic Pattern Question",
-          "startTime": "",
-          "endTime": "",
-          "status": "not_done",
-          "topics": []
-        },
-        {
-          "id": "0d4a1136-bd07-4fe5-9561-5ca76e0a6387",
-          "name": "Core Concept of Interview",
-          "startTime": "",
-          "endTime": "",
-          "status": "not_done",
-          "topics": []
-        },
-        {
-          "id": "280518f1-2a07-4065-a154-9a066a8a194f",
-          "name": "Aptitude",
-          "startTime": "14:10",
-          "endTime": "02:50",
-          "status": "done",
-          "topics": [
-            "Time and Work"
-          ]
-        }
-      ]
-    },
-    {
       "id": "2026-05-01",
       "items": []
     },
     {
-      "id": "public::2026-05-01",
-      "userId": "public",
-      "dateKey": "2026-05-01",
-      "items": []
-    },
-    {
       "id": "2026-05-08",
-      "items": []
-    },
-    {
-      "id": "public::2026-05-08",
-      "userId": "public",
-      "dateKey": "2026-05-08",
       "items": []
     },
     {
@@ -158,66 +97,11 @@
       ]
     },
     {
-      "id": "public::2026-05-10",
-      "userId": "public",
-      "dateKey": "2026-05-10",
-      "items": [
-        {
-          "id": "7c78e57c-99dc-4813-a8c1-8b893e9672a6",
-          "name": "Aptitute",
-          "startTime": "",
-          "endTime": "",
-          "status": "pending",
-          "topics": [],
-          "_selected": true
-        },
-        {
-          "id": "7145f63b-2de3-4787-b805-a380cf529d2f",
-          "name": "DSA",
-          "startTime": "",
-          "endTime": "",
-          "status": "pending",
-          "topics": [],
-          "_selected": true
-        },
-        {
-          "id": "e8b4f377-e956-490d-9d35-ffa238c52f5c",
-          "name": "Basic Pattern Question",
-          "startTime": "",
-          "endTime": "",
-          "status": "pending",
-          "topics": [],
-          "_selected": true
-        },
-        {
-          "id": "da7fb544-3a1d-4ee7-9c94-35038c49a3fc",
-          "name": "Core Concept of Interview",
-          "startTime": "",
-          "endTime": "",
-          "status": "pending",
-          "topics": [],
-          "_selected": true
-        }
-      ]
-    },
-    {
       "id": "2026-05-07",
       "items": []
     },
     {
-      "id": "public::2026-05-07",
-      "userId": "public",
-      "dateKey": "2026-05-07",
-      "items": []
-    },
-    {
       "id": "2026-05-06",
-      "items": []
-    },
-    {
-      "id": "public::2026-05-06",
-      "userId": "public",
-      "dateKey": "2026-05-06",
       "items": []
     },
     {
@@ -262,66 +146,11 @@
       ]
     },
     {
-      "id": "public::2026-05-11",
-      "userId": "public",
-      "dateKey": "2026-05-11",
-      "items": [
-        {
-          "id": "f478c95c-dbd6-4a54-80a1-024cc7212a3d",
-          "name": "Aptitute",
-          "startTime": "",
-          "endTime": "",
-          "status": "pending",
-          "topics": [],
-          "_selected": true
-        },
-        {
-          "id": "704da6f3-bf18-4ac4-999d-86299184cc4f",
-          "name": "DSA",
-          "startTime": "",
-          "endTime": "",
-          "status": "pending",
-          "topics": [],
-          "_selected": true
-        },
-        {
-          "id": "418c6777-17fc-496b-aedb-ea991e146c0d",
-          "name": "Basic Pattern Question",
-          "startTime": "",
-          "endTime": "",
-          "status": "pending",
-          "topics": [],
-          "_selected": true
-        },
-        {
-          "id": "8f1d06f8-f9cf-4d02-b1e1-551f514198f5",
-          "name": "Core Concept of Interview",
-          "startTime": "",
-          "endTime": "",
-          "status": "pending",
-          "topics": [],
-          "_selected": true
-        }
-      ]
-    },
-    {
       "id": "2026-05-12",
       "items": []
     },
     {
-      "id": "public::2026-05-12",
-      "userId": "public",
-      "dateKey": "2026-05-12",
-      "items": []
-    },
-    {
       "id": "2026-05-13",
-      "items": []
-    },
-    {
-      "id": "public::2026-05-13",
-      "userId": "public",
-      "dateKey": "2026-05-13",
       "items": []
     },
     {
@@ -348,23 +177,11 @@
       "id": "2026-05-09",
       "startTime": "08:15",
       "endTime": ""
-    },
-    {
-      "id": "public::2026-05-09",
-      "userId": "public",
-      "dateKey": "2026-05-09",
-      "startTime": "08:15",
-      "endTime": ""
     }
   ],
   "destination": [
     {
       "id": "main",
-      "date": "2027-03-31"
-    },
-    {
-      "id": "public::main",
-      "userId": "public",
       "date": "2027-03-31"
     }
   ],

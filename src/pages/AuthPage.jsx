@@ -147,7 +147,7 @@ export default function AuthPage({ mode }) {
       setAuthStep('verify-email');
       setEmailVerificationState('sent');
       setVerificationCode('');
-      setError(`We sent a verification code to ${email}. Enter it below to verify your email.`);
+        setError('');
     } catch (err) {
       console.error('Email verification code request failed', err);
       setEmailVerificationState('failed');
@@ -173,7 +173,7 @@ export default function AuthPage({ mode }) {
       await signUp.attemptEmailAddressVerification({ code: verificationCode });
       setEmailVerificationState('verified');
       setAuthStep('password');
-      setError('✓ Email verified. Now enter your password and confirm it to finish creating your account.');
+        setError('');
     } catch (err) {
       console.error('Email verification error', err);
       setEmailVerificationState('failed');
@@ -456,7 +456,7 @@ export default function AuthPage({ mode }) {
                                 : 'Email not verified yet'
                         }
                       >
-                        {emailVerificationState === 'verified' ? '✓' : emailVerificationState === 'failed' ? '✕' : emailVerificationState === 'sent' ? '…' : ''}
+                        {emailVerificationState === 'verified' ? '✓ Verification successful' : emailVerificationState === 'failed' ? '✕ Not verified' : emailVerificationState === 'sent' ? 'Code sent.' : ''}
                       </span>
                     </div>
                   </label>
@@ -482,9 +482,9 @@ export default function AuthPage({ mode }) {
                         />
                       </label>
                       <div className="auth-verification-state">
-                        {emailVerificationState === 'verified' && '✓ Email verified'}
-                        {emailVerificationState === 'failed' && '✕ Email verification failed'}
-                        {emailVerificationState === 'sent' && 'Code sent to your email address'}
+                        {emailVerificationState === 'verified' && '✓ Verification successful'}
+                        {emailVerificationState === 'failed' && '✕ Not verified'}
+                        {emailVerificationState === 'sent' && 'Code sent.'}
                       </div>
                     </>
                   )}

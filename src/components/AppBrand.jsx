@@ -7,7 +7,7 @@ export default function AppBrand({ compact = false }) {
     <div className={`app-brand ${compact ? 'app-brand--compact' : ''}`}>
       {!imgError ? (
         <img
-          src="/login-signup.png"
+          src="/logo.png"
           alt="Iniku Enna Panlam"
           className="app-brand__image"
           onError={() => setImgError(true)}
