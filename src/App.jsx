@@ -1,6 +1,5 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Outlet } from 'react-router-dom';
+import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import AuthPage from './pages/AuthPage';
 import CalendarPage from './pages/CalendarPage';
 import DayPage from './pages/DayPage';
@@ -20,6 +19,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route
+          path="/sso-callback"
+          element={
+            <AuthenticateWithRedirectCallback
+              signInFallbackRedirectUrl="/"
+              signUpFallbackRedirectUrl="/"
+              signInForceRedirectUrl="/"
+              signUpForceRedirectUrl="/"
+            />
+          }
+        />
         <Route path="/sign-in/*" element={<SignInPage />} />
         <Route path="/sign-up/*" element={<SignUpPage />} />
 

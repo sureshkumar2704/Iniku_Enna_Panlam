@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fromDateKey } from '../utils/dateUtils';
+import { deleteCollectionRecord, fetchCollectionRecord, upsertCollectionRecord } from '../utils/apiClient';
 
 export default function DestinationCountdown({ userId }) {
   const [destDate, setDestDate] = useState('');
@@ -9,8 +10,7 @@ export default function DestinationCountdown({ userId }) {
 
   useEffect(() => {
     let active = true;
-    fetch(`/api/destination/${destinationId}`)
-      .then(res => res.ok ? res.json() : null)
+    fetchCollectionRecord('destination', [destinationId, 'main'])
       .then(data => {
         if (active) {
           if (data && data.date) {
@@ -29,20 +29,7 @@ export default function DestinationCountdown({ userId }) {
       setDestDate(tempDate);
       setIsEditing(false);
       try {
-        const checkRes = await fetch(`/api/destination/${destinationId}`);
-        if (checkRes.ok) {
-          await fetch(`/api/destination/${destinationId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: destinationId, userId, date: tempDate })
-          });
-        } else {
-          await fetch('/api/destination', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: destinationId, userId, date: tempDate })
-          });
-        }
+        await upsertCollectionRecord('destination', [destinationId, 'main'], { id: destinationId, userId, date: tempDate });
       } catch {}
     }
   }
@@ -52,7 +39,7 @@ export default function DestinationCountdown({ userId }) {
     setTempDate('');
     setIsEditing(true);
     try {
-      await fetch(`/api/destination/${destinationId}`, { method: 'DELETE' });
+      await deleteCollectionRecord('destination', [destinationId, 'main']);
     } catch {}
   }
 

@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { fetchCollectionRecord, upsertCollectionRecord } from '../utils/apiClient';
 
 function scopedId(userId, key) {
   return userId ? `${userId}::${key}` : key;
@@ -6,12 +7,8 @@ function scopedId(userId, key) {
 
 export async function getTasksForDate(dateKey, userId) {
   try {
-    const res = await fetch(`/api/tasks/${scopedId(userId, dateKey)}`);
-    if (res.ok) {
-      const data = await res.json();
-      return data.items || [];
-    }
-    return [];
+    const record = await fetchCollectionRecord('tasks', [scopedId(userId, dateKey), dateKey]);
+    return record?.items || [];
   } catch (error) {
     console.error("Failed to fetch tasks", error);
     return [];
@@ -21,20 +18,7 @@ export async function getTasksForDate(dateKey, userId) {
 export async function saveTasksForDate(dateKey, tasks, userId) {
   const id = scopedId(userId, dateKey);
   try {
-    const checkRes = await fetch(`/api/tasks/${id}`);
-    if (checkRes.ok) {
-      await fetch(`/api/tasks/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, userId, dateKey, items: tasks }),
-      });
-    } else {
-      await fetch(`/api/tasks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, userId, dateKey, items: tasks }),
-      });
-    }
+    await upsertCollectionRecord('tasks', [id, dateKey], { id, userId, dateKey, items: tasks });
   } catch (error) {
     console.error("Failed to save tasks", error);
   }

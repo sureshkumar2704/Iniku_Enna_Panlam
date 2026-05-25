@@ -2,24 +2,12 @@ import React, { useState, useEffect } from 'react';
 import ClockPicker from './ClockPicker';
 import { todayKey } from '../utils/dateUtils';
 import { getCompletionStats } from '../hooks/useTasks';
+import { fetchCollectionRecord, upsertCollectionRecord } from '../utils/apiClient';
 
 async function saveSession(dateKey, data, userId) {
   const id = `${userId || 'public'}::${dateKey}`;
   try {
-    const checkRes = await fetch(`/api/sessions/${id}`);
-    if (checkRes.ok) {
-      await fetch(`/api/sessions/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, userId, dateKey, ...data }),
-      });
-    } else {
-      await fetch(`/api/sessions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, userId, dateKey, ...data }),
-      });
-    }
+    await upsertCollectionRecord('sessions', [id, dateKey], { id, userId, dateKey, ...data });
   } catch {}
 }
 
@@ -47,8 +35,8 @@ export default function TodayProgress({ userId }) {
 
   useEffect(() => {
     let active = true;
-    fetch(`/api/sessions/${userId || 'public'}::${dateKey}`)
-      .then(res => res.ok ? res.json() : { startTime: '', endTime: '' })
+    fetchCollectionRecord('sessions', [`${userId || 'public'}::${dateKey}`, dateKey])
+      .then(data => data || { startTime: '', endTime: '' })
       .then(data => { if (active) setSession({ startTime: data.startTime || '', endTime: data.endTime || '' }); })
       .catch(() => { if (active) setSession({ startTime: '', endTime: '' }); });
 
