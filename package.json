@@ -12,6 +12,7 @@
     "server": "json-server --watch db.json --port 3000"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.61.7",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.15.0",

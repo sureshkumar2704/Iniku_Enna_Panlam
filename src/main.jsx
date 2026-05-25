@@ -1,10 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ClerkProvider } from '@clerk/clerk-react';
 import App from './App';
+import ClerkSetupNotice from './components/ClerkSetupNotice';
 import './index.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+
+root.render(
   <React.StrictMode>
-    <App />
+    {clerkPublishableKey ? (
+      <ClerkProvider publishableKey={clerkPublishableKey} afterSignOutUrl="/sign-in">
+        <App />
+      </ClerkProvider>
+    ) : (
+      <ClerkSetupNotice />
+    )}
   </React.StrictMode>
 );

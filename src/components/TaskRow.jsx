@@ -31,7 +31,6 @@ export default function TaskRow({ task, index, onChange, onDelete }) {
       <button
         className={`task-status-btn task-status-btn--${task.status}`}
         onClick={cycleStatus}
-        disabled={!isEditable}
         title={`Status: ${statusCfg.label} — Click to cycle`}
         aria-label="Toggle task status"
       >

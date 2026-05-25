@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { getBacklog, addToBacklog, updateBacklogItem, deleteBacklogItem } from '../hooks/useTasks';
 
 export default function BacklogList() {
+  const { userId } = useAuth();
   const [items, setItems] = useState([]);
   const [input, setInput] = useState('');
 
   useEffect(() => {
     refresh();
-  }, []);
+  }, [userId]);
 
   async function refresh() {
-    const data = await getBacklog();
+    const data = await getBacklog(userId);
     setItems(data);
   }
 
   async function handleAdd(e) {
     if (e.key === 'Enter' && input.trim()) {
       e.preventDefault();
-      await addToBacklog(input.trim());
+      await addToBacklog(input.trim(), userId);
       setInput('');
       refresh();
     }

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
+import AppBrand from '../components/AppBrand';
 import CalendarGrid from '../components/CalendarGrid';
 import TodayProgress from '../components/TodayProgress';
 import DestinationCountdown from '../components/DestinationCountdown';
@@ -7,6 +9,7 @@ import { MONTHS } from '../utils/dateUtils';
 
 export default function CalendarPage() {
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -31,13 +34,7 @@ export default function CalendarPage() {
       {/* App header */}
       <header className="app-header">
         <div className="app-header-inner">
-          <div className="app-logo">
-            <span className="app-logo-icon">📅</span>
-            <div>
-              <h1 className="app-title">Iniku Enna Panlam</h1>
-              <p className="app-subtitle">Your daily progress tracker</p>
-            </div>
-          </div>
+          <AppBrand />
           <button className="btn btn-secondary" onClick={() => navigate('/todos')}>
             🎯 Global To-Do
           </button>
@@ -48,10 +45,10 @@ export default function CalendarPage() {
         <div className="calendar-layout">
 
           {/* ── Destination Countdown ── */}
-          <DestinationCountdown />
+          <DestinationCountdown userId={userId} />
 
           {/* ── Today's Progress card ── */}
-          <TodayProgress />
+          <TodayProgress userId={userId} />
 
 
 
@@ -68,7 +65,7 @@ export default function CalendarPage() {
 
             <button className="btn btn-ghost calendar-today-btn" onClick={goToToday}>Today</button>
 
-            <CalendarGrid year={year} month={month} />
+            <CalendarGrid year={year} month={month} userId={userId} />
 
             <div className="calendar-legend">
               <div className="legend-item"><span className="legend-dot legend-dot--today" /><span>Today</span></div>

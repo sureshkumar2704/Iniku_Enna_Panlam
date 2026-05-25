@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import { getBacklog, addToBacklog, updateBacklogItem, deleteBacklogItem } from '../hooks/useTasks';
 
 export default function TodoPage() {
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const [items, setItems] = useState([]);
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -11,10 +13,10 @@ export default function TodoPage() {
 
   useEffect(() => {
     refresh();
-  }, []);
+  }, [userId]);
 
   async function refresh() {
-    const data = await getBacklog();
+    const data = await getBacklog(userId);
     // Sort by creation date if available, or just newest first
     setItems(data.reverse());
   }
@@ -22,7 +24,7 @@ export default function TodoPage() {
   async function handleAdd(e) {
     if ((e.key === 'Enter' || e.type === 'click') && input.trim()) {
       if (e.key === 'Enter') e.preventDefault();
-      await addToBacklog(input.trim());
+      await addToBacklog(input.trim(), userId);
       setInput('');
       refresh();
     }

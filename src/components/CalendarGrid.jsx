@@ -10,7 +10,7 @@ import {
 } from '../utils/dateUtils';
 import { getAllStats } from '../hooks/useTasks';
 
-export default function CalendarGrid({ year, month }) {
+export default function CalendarGrid({ year, month, userId }) {
   const navigate = useNavigate();
   const today = todayKey();
   const daysInMonth = getDaysInMonth(year, month);
@@ -19,11 +19,11 @@ export default function CalendarGrid({ year, month }) {
 
   useEffect(() => {
     let active = true;
-    getAllStats().then(data => {
+    getAllStats(userId).then(data => {
       if (active) setStatsMap(data);
     });
     return () => { active = false; };
-  }, [year, month]);
+  }, [year, month, userId]);
 
   // Build grid cells (blanks + days)
   const cells = [];

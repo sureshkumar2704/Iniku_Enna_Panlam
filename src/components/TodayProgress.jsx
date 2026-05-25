@@ -3,20 +3,21 @@ import ClockPicker from './ClockPicker';
 import { todayKey } from '../utils/dateUtils';
 import { getCompletionStats } from '../hooks/useTasks';
 
-async function saveSession(dateKey, data) {
+async function saveSession(dateKey, data, userId) {
+  const id = `${userId || 'public'}::${dateKey}`;
   try {
-    const checkRes = await fetch(`/api/sessions/${dateKey}`);
+    const checkRes = await fetch(`/api/sessions/${id}`);
     if (checkRes.ok) {
-      await fetch(`/api/sessions/${dateKey}`, {
+      await fetch(`/api/sessions/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: dateKey, ...data }),
+        body: JSON.stringify({ id, userId, dateKey, ...data }),
       });
     } else {
       await fetch(`/api/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: dateKey, ...data }),
+        body: JSON.stringify({ id, userId, dateKey, ...data }),
       });
     }
   } catch {}
@@ -39,31 +40,31 @@ function fmt12(timeStr) {
   return `${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ap}`;
 }
 
-export default function TodayProgress() {
+export default function TodayProgress({ userId }) {
   const dateKey = todayKey();
   const [session, setSession] = useState({ startTime: '', endTime: '' });
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
     let active = true;
-    fetch(`/api/sessions/${dateKey}`)
+    fetch(`/api/sessions/${userId || 'public'}::${dateKey}`)
       .then(res => res.ok ? res.json() : { startTime: '', endTime: '' })
       .then(data => { if (active) setSession({ startTime: data.startTime || '', endTime: data.endTime || '' }); })
       .catch(() => { if (active) setSession({ startTime: '', endTime: '' }); });
 
-    getCompletionStats(dateKey).then(data => { if (active) setStats(data); });
+    getCompletionStats(dateKey, userId).then(data => { if (active) setStats(data); });
     
     // refresh stats every 10s in case day page updates
     const id = setInterval(() => {
-      getCompletionStats(dateKey).then(data => { if (active) setStats(data); });
+      getCompletionStats(dateKey, userId).then(data => { if (active) setStats(data); });
     }, 10000);
     return () => { active = false; clearInterval(id); };
-  }, [dateKey]);
+  }, [dateKey, userId]);
 
   function update(field, val) {
     const next = { ...session, [field]: val };
     setSession(next);
-    saveSession(dateKey, next);
+    saveSession(dateKey, next, userId);
   }
 
   const duration = calcDuration(session.startTime, session.endTime);

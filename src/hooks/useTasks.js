@@ -1,8 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 
-export async function getTasksForDate(dateKey) {
+function scopedId(userId, key) {
+  return userId ? `${userId}::${key}` : key;
+}
+
+export async function getTasksForDate(dateKey, userId) {
   try {
-    const res = await fetch(`/api/tasks/${dateKey}`);
+    const res = await fetch(`/api/tasks/${scopedId(userId, dateKey)}`);
     if (res.ok) {
       const data = await res.json();
       return data.items || [];
@@ -14,20 +18,21 @@ export async function getTasksForDate(dateKey) {
   }
 }
 
-export async function saveTasksForDate(dateKey, tasks) {
+export async function saveTasksForDate(dateKey, tasks, userId) {
+  const id = scopedId(userId, dateKey);
   try {
-    const checkRes = await fetch(`/api/tasks/${dateKey}`);
+    const checkRes = await fetch(`/api/tasks/${id}`);
     if (checkRes.ok) {
-      await fetch(`/api/tasks/${dateKey}`, {
+      await fetch(`/api/tasks/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: dateKey, items: tasks }),
+        body: JSON.stringify({ id, userId, dateKey, items: tasks }),
       });
     } else {
       await fetch(`/api/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: dateKey, items: tasks }),
+        body: JSON.stringify({ id, userId, dateKey, items: tasks }),
       });
     }
   } catch (error) {
@@ -47,8 +52,8 @@ export function createEmptyTask(overrides = {}) {
   };
 }
 
-export async function cloneTasksFromDate(sourceDateKey) {
-  const tasks = await getTasksForDate(sourceDateKey);
+export async function cloneTasksFromDate(sourceDateKey, userId) {
+  const tasks = await getTasksForDate(sourceDateKey, userId);
   return tasks.map((t) => ({
     ...t,
     id: uuidv4(),
@@ -58,23 +63,23 @@ export async function cloneTasksFromDate(sourceDateKey) {
   }));
 }
 
-export async function getCompletionStats(dateKey) {
-  const tasks = await getTasksForDate(dateKey);
+export async function getCompletionStats(dateKey, userId) {
+  const tasks = await getTasksForDate(dateKey, userId);
   if (!tasks.length) return null;
   const done = tasks.filter((t) => t.status === 'done').length;
   return { done, total: tasks.length };
 }
 
-export async function getAllStats() {
+export async function getAllStats(userId) {
   try {
     const res = await fetch(`/api/tasks`);
     if (res.ok) {
       const all = await res.json();
       const statsMap = {};
       all.forEach(record => {
-        if (record.items && record.items.length > 0) {
+        if (record.userId === userId && record.items && record.items.length > 0) {
           const done = record.items.filter(t => t.status === 'done').length;
-          statsMap[record.id] = { done, total: record.items.length };
+          statsMap[record.dateKey || record.id] = { done, total: record.items.length };
         }
       });
       return statsMap;
@@ -85,20 +90,20 @@ export async function getAllStats() {
   return {};
 }
 
-export async function getBacklog() {
+export async function getBacklog(userId) {
   try {
-    const res = await fetch('/api/backlog');
+    const res = await fetch(`/api/backlog?ownerId=${encodeURIComponent(userId || '')}`);
     if (res.ok) return await res.json();
   } catch (e) { console.error(e); }
   return [];
 }
 
-export async function addToBacklog(text) {
+export async function addToBacklog(text, userId) {
   try {
     await fetch('/api/backlog', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: uuidv4(), text, done: false, createdAt: new Date().toISOString() }),
+      body: JSON.stringify({ id: uuidv4(), ownerId: userId, text, done: false, createdAt: new Date().toISOString() }),
     });
   } catch (e) { console.error(e); }
 }

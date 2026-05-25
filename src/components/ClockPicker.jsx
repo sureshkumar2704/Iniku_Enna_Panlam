@@ -26,6 +26,7 @@ export default function ClockPicker({ value, onChange, label, placeholder = '--:
   const [hasValue, setHasValue] = useState(false);
   const svgRef = useRef(null);
   const popupRef = useRef(null);
+  const activePointerIdRef = useRef(null);
 
   useEffect(() => {
     if (value) {
@@ -67,43 +68,44 @@ export default function ClockPicker({ value, onChange, label, placeholder = '--:
   function getAngle(e) {
     if (!svgRef.current) return 0;
     const rect = svgRef.current.getBoundingClientRect();
-    const cl = e.touches ? e.touches[0].clientX : e.clientX;
-    const ct = e.touches ? e.touches[0].clientY : e.clientY;
+    const cl = e.clientX;
+    const ct = e.clientY;
     return posToClockAngle(cl, ct, rect);
   }
 
-  const onDown = useCallback((e) => {
+  const onPointerDown = useCallback((e) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
+    activePointerIdRef.current = e.pointerId;
+    if (svgRef.current?.setPointerCapture && e.pointerId !== undefined) {
+      svgRef.current.setPointerCapture(e.pointerId);
+    }
     applyAngle(getAngle(e));
   }, [mode, hour, minute, ampm]);
 
-  const onMove = useCallback((e) => {
+  const onPointerMove = useCallback((e) => {
     if (!isDragging) return;
     e.preventDefault();
+    e.stopPropagation();
     applyAngle(getAngle(e));
   }, [isDragging, mode, hour, minute, ampm]);
 
-  const onUp = useCallback(() => {
+  const onPointerUp = useCallback((e) => {
     if (!isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
+    if (svgRef.current?.releasePointerCapture && activePointerIdRef.current !== null) {
+      try {
+        svgRef.current.releasePointerCapture(activePointerIdRef.current);
+      } catch {
+        // Ignore if capture was already released.
+      }
+    }
+    activePointerIdRef.current = null;
     if (mode === 'hour') setMode('minute');
   }, [isDragging, mode]);
-
-  // Document-level listeners so drag works outside SVG
-  useEffect(() => {
-    if (!isOpen) return;
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    document.addEventListener('touchmove', onMove, { passive: false });
-    document.addEventListener('touchend', onUp);
-    return () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      document.removeEventListener('touchmove', onMove);
-      document.removeEventListener('touchend', onUp);
-    };
-  }, [isOpen, onMove, onUp]);
 
   const handAngle = mode === 'hour' ? (hour % 12) * 30 : minute * 6;
   const tip = clockAngleToXY(handAngle, HAND_R);
@@ -147,12 +149,12 @@ export default function ClockPicker({ value, onChange, label, placeholder = '--:
           <div className="cp-popup" ref={popupRef}>
             {/* Time display + mode selector */}
             <div className="cp-header">
-            <button className={`cp-seg ${mode === 'hour' ? 'cp-seg--active' : ''}`} onClick={() => setMode('hour')}>{dH}</button>
+            <button type="button" className={`cp-seg ${mode === 'hour' ? 'cp-seg--active' : ''}`} onClick={() => setMode('hour')}>{dH}</button>
             <span className="cp-sep">:</span>
-            <button className={`cp-seg ${mode === 'minute' ? 'cp-seg--active' : ''}`} onClick={() => setMode('minute')}>{dM}</button>
+            <button type="button" className={`cp-seg ${mode === 'minute' ? 'cp-seg--active' : ''}`} onClick={() => setMode('minute')}>{dM}</button>
             <div className="cp-ampm">
-              <button className={ampm === 'AM' ? 'cp-ampm-btn--active' : 'cp-ampm-btn'} onClick={() => setAmpm('AM')}>AM</button>
-              <button className={ampm === 'PM' ? 'cp-ampm-btn--active' : 'cp-ampm-btn'} onClick={() => setAmpm('PM')}>PM</button>
+              <button type="button" className={ampm === 'AM' ? 'cp-ampm-btn--active' : 'cp-ampm-btn'} onClick={() => setAmpm('AM')}>AM</button>
+              <button type="button" className={ampm === 'PM' ? 'cp-ampm-btn--active' : 'cp-ampm-btn'} onClick={() => setAmpm('PM')}>PM</button>
             </div>
           </div>
 
@@ -163,8 +165,10 @@ export default function ClockPicker({ value, onChange, label, placeholder = '--:
             ref={svgRef}
             viewBox="0 0 240 240"
             className="cp-svg"
-            onMouseDown={onDown}
-            onTouchStart={onDown}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
             style={{ touchAction: 'none', userSelect: 'none', cursor: isDragging ? 'grabbing' : 'grab' }}
           >
             {/* Outer ring */}
@@ -223,7 +227,7 @@ export default function ClockPicker({ value, onChange, label, placeholder = '--:
           </svg>
 
           <div className="cp-footer">
-            <button className="btn btn-ghost cp-cancel" onClick={() => {
+            <button type="button" className="btn btn-ghost cp-cancel" onClick={() => {
               if (value) {
                 const [h, m] = value.split(':').map(Number);
                 setAmpm(h >= 12 ? 'PM' : 'AM');
@@ -232,7 +236,7 @@ export default function ClockPicker({ value, onChange, label, placeholder = '--:
               }
               setIsOpen(false);
             }}>Cancel</button>
-            <button className="btn btn-primary cp-ok" onClick={() => { 
+            <button type="button" className="btn btn-primary cp-ok" onClick={() => { 
               emit(hour, minute, ampm);
               setIsOpen(false); 
               setMode('hour'); 

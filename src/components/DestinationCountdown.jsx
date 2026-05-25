@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { fromDateKey } from '../utils/dateUtils';
 
-const DESTINATION_KEY = 'iniku_destination';
-
-export default function DestinationCountdown() {
+export default function DestinationCountdown({ userId }) {
   const [destDate, setDestDate] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [tempDate, setTempDate] = useState('');
+  const destinationId = `${userId || 'public'}::main`;
 
   useEffect(() => {
     let active = true;
-    fetch('/api/destination/main')
+    fetch(`/api/destination/${destinationId}`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (active) {
@@ -30,18 +29,18 @@ export default function DestinationCountdown() {
       setDestDate(tempDate);
       setIsEditing(false);
       try {
-        const checkRes = await fetch('/api/destination/main');
+        const checkRes = await fetch(`/api/destination/${destinationId}`);
         if (checkRes.ok) {
-          await fetch('/api/destination/main', {
+          await fetch(`/api/destination/${destinationId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: 'main', date: tempDate })
+            body: JSON.stringify({ id: destinationId, userId, date: tempDate })
           });
         } else {
           await fetch('/api/destination', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: 'main', date: tempDate })
+            body: JSON.stringify({ id: destinationId, userId, date: tempDate })
           });
         }
       } catch {}
@@ -53,7 +52,7 @@ export default function DestinationCountdown() {
     setTempDate('');
     setIsEditing(true);
     try {
-      await fetch('/api/destination/main', { method: 'DELETE' });
+      await fetch(`/api/destination/${destinationId}`, { method: 'DELETE' });
     } catch {}
   }
 

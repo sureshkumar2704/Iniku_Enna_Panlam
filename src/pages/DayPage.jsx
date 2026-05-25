@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import TaskList from '../components/TaskList';
 import CopyYesterdayModal from '../components/CopyYesterdayModal';
 import {
@@ -19,6 +20,7 @@ import {
 export default function DayPage() {
   const { dateKey } = useParams();
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [yesterdayTasks, setYesterdayTasks] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -34,8 +36,8 @@ export default function DayPage() {
     let active = true;
     setIsLoaded(false);
     Promise.all([
-      getTasksForDate(dateKey),
-      cloneTasksFromDate(yesterdayKey)
+      getTasksForDate(dateKey, userId),
+      cloneTasksFromDate(yesterdayKey, userId)
     ]).then(([t, yt]) => {
       if (active) {
         setTasks(t);
@@ -44,14 +46,14 @@ export default function DayPage() {
       }
     });
     return () => { active = false; };
-  }, [dateKey, yesterdayKey]);
+  }, [dateKey, yesterdayKey, userId]);
 
   // Auto-save whenever tasks change
   useEffect(() => {
     if (!isLoaded) return;
-    saveTasksForDate(dateKey, tasks);
+    saveTasksForDate(dateKey, tasks, userId);
     flashSaved();
-  }, [tasks, dateKey, isLoaded]);
+  }, [tasks, dateKey, isLoaded, userId]);
 
   function flashSaved() {
     setSavedIndicator(true);
