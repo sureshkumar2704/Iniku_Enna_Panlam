@@ -1,0 +1,186 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import TaskList from '../components/TaskList';
+import CopyYesterdayModal from '../components/CopyYesterdayModal';
+import {
+  formatFullDate,
+  fromDateKey,
+  getYesterdayKey,
+  todayKey,
+  toDateKey,
+} from '../utils/dateUtils';
+import {
+  getTasksForDate,
+  saveTasksForDate,
+  createEmptyTask,
+  cloneTasksFromDate,
+} from '../hooks/useTasks';
+
+export default function DayPage() {
+  const { dateKey } = useParams();
+  const navigate = useNavigate();
+  const [tasks, setTasks] = useState([]);
+  const [yesterdayTasks, setYesterdayTasks] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [savedIndicator, setSavedIndicator] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const date = fromDateKey(dateKey);
+  const isToday = dateKey === todayKey();
+  const yesterdayKey = getYesterdayKey(dateKey);
+
+  // Load tasks on mount / dateKey change
+  useEffect(() => {
+    let active = true;
+    setIsLoaded(false);
+    Promise.all([
+      getTasksForDate(dateKey),
+      cloneTasksFromDate(yesterdayKey)
+    ]).then(([t, yt]) => {
+      if (active) {
+        setTasks(t);
+        setYesterdayTasks(yt);
+        setIsLoaded(true);
+      }
+    });
+    return () => { active = false; };
+  }, [dateKey, yesterdayKey]);
+
+  // Auto-save whenever tasks change
+  useEffect(() => {
+    if (!isLoaded) return;
+    saveTasksForDate(dateKey, tasks);
+    flashSaved();
+  }, [tasks, dateKey, isLoaded]);
+
+  function flashSaved() {
+    setSavedIndicator(true);
+    setTimeout(() => setSavedIndicator(false), 1500);
+  }
+
+  function addTask() {
+    setTasks((prev) => [...prev, createEmptyTask()]);
+  }
+
+  function handleChange(id, field, value) {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
+    );
+  }
+
+  function handleDelete(id) {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function handleCopyConfirm(copiedTasks) {
+    setTasks((prev) => {
+      // Avoid duplicating identical names if already present
+      const existingNames = new Set(prev.map((t) => t.name.trim()));
+      const fresh = copiedTasks.filter((t) => !existingNames.has(t.name.trim()));
+      return [...prev, ...fresh];
+    });
+    setShowModal(false);
+  }
+
+  function goToPrevDay() {
+    const d = new Date(date);
+    d.setDate(d.getDate() - 1);
+    navigate(`/day/${toDateKey(d)}`);
+  }
+
+  function goToNextDay() {
+    const d = new Date(date);
+    d.setDate(d.getDate() + 1);
+    navigate(`/day/${toDateKey(d)}`);
+  }
+
+  const done = tasks.filter((t) => t.status === 'done').length;
+  const notDone = tasks.filter((t) => t.status === 'not_done').length;
+  const pending = tasks.filter((t) => t.status === 'pending').length;
+  const progressPct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+
+  return (
+    <div className="page day-page">
+      {/* Header */}
+      <header className="day-header">
+        <button className="day-back-btn" onClick={() => navigate('/')} aria-label="Back to calendar">
+          ← Calendar
+        </button>
+
+        <div className="day-header-center">
+          <div className="day-date-display">
+            {isToday && <span className="day-today-badge">TODAY</span>}
+            <div className="day-date-nav">
+              <button className="day-nav-arrow" onClick={goToPrevDay} aria-label="Previous day">‹</button>
+              <h1 className="day-date-title">{formatFullDate(date)}</h1>
+              <button className="day-nav-arrow" onClick={goToNextDay} aria-label="Next day">›</button>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          {tasks.length > 0 && (
+            <div className="day-progress-section">
+              <div className="day-progress-bar-wrap">
+                <div
+                  className="day-progress-bar-fill"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <div className="day-stats">
+                <span className="stat stat--done">✓ {done} done</span>
+                <span className="stat stat--not-done">✗ {notDone} skipped</span>
+                <span className="stat stat--pending">○ {pending} pending</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="day-header-right">
+          {savedIndicator && <span className="save-indicator">✓ Saved</span>}
+        </div>
+      </header>
+
+      {/* Action bar */}
+      <div className="day-action-bar">
+        <button
+          id="add-task-btn"
+          className="btn btn-primary"
+          onClick={addTask}
+        >
+          + Add Task
+        </button>
+        <button
+          id="copy-yesterday-btn"
+          className="btn btn-secondary"
+          onClick={() => setShowModal(true)}
+        >
+          ⎘ Copy Yesterday
+        </button>
+      </div>
+
+      {/* Task list */}
+      <main className="day-main">
+        <TaskList
+          tasks={tasks}
+          onChange={handleChange}
+          onDelete={handleDelete}
+        />
+
+        {tasks.length > 0 && (
+          <div className="day-add-row">
+            <button className="btn btn-ghost" onClick={addTask}>+ Add another task</button>
+          </div>
+        )}
+      </main>
+
+      {/* Copy yesterday modal */}
+      {showModal && (
+        <CopyYesterdayModal
+          yesterdayTasks={yesterdayTasks}
+          onConfirm={handleCopyConfirm}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </div>
+  );
+}
