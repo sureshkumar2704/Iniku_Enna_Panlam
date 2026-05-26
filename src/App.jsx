@@ -3,6 +3,7 @@ import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import AuthPage from './pages/AuthPage';
 import CalendarPage from './pages/CalendarPage';
 import DayPage from './pages/DayPage';
+import ProfilePage from './pages/ProfilePage';
 import TodoPage from './pages/TodoPage';
 import ProtectedLayout from './components/ProtectedLayout';
 import RequireAuth from './components/RequireAuth';
@@ -36,6 +37,7 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<CalendarPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/day/:dateKey" element={<DayPage />} />
             <Route path="/todos" element={<TodoPage />} />
           </Route>

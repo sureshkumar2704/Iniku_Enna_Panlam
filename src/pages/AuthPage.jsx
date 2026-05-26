@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSignIn, useSignUp } from '@clerk/clerk-react';
 import AppBrand from '../components/AppBrand';
+import { deriveAccountCredentials } from '../utils/accountCredentials';
 
 const clerkErrorMessages = {
   form_identifier_not_found: 'No account was found with that email or username.',
@@ -80,31 +81,22 @@ export default function AuthPage({ mode }) {
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
-  const [username, setUsername] = React.useState('');
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
-  const [confirmPassword, setConfirmPassword] = React.useState('');
   const [authStep, setAuthStep] = React.useState('email');
   const [verificationCode, setVerificationCode] = React.useState('');
   const [emailVerificationState, setEmailVerificationState] = React.useState('idle');
+  const generatedCredentials = React.useMemo(() => deriveAccountCredentials(email), [email]);
 
   const handleOAuth = async (strategy) => {
     try {
-      if (isSignIn) {
-        if (!signInLoaded) return;
-        await signIn.authenticateWithRedirect({
-          strategy,
-          redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/',
-        });
-      } else {
-        if (!signUpLoaded) return;
-        await signUp.authenticateWithRedirect({
-          strategy,
-          redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/',
-        });
-      }
+      if (!signUpLoaded) return;
+
+      await signUp.authenticateWithRedirect({
+        strategy,
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: '/',
+      });
     } catch (err) {
       console.error('OAuth redirect failed', err);
       setError(getAuthErrorMessage(err, 'Could not start this sign-in option. Please try another method.'));
@@ -115,8 +107,6 @@ export default function AuthPage({ mode }) {
     setAuthStep('email');
     setVerificationCode('');
     setEmailVerificationState('idle');
-    setPassword('');
-    setConfirmPassword('');
   };
 
   const sendEmailVerificationCode = async () => {
@@ -125,8 +115,8 @@ export default function AuthPage({ mode }) {
       return;
     }
 
-    if (!firstName.trim() || !lastName.trim() || !username.trim()) {
-      setError('Please enter your first name, last name, and username first');
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Please enter your first name and last name first');
       return;
     }
 
@@ -140,14 +130,14 @@ export default function AuthPage({ mode }) {
       await signUp.create({
         firstName,
         lastName,
-        username,
+        username: generatedCredentials.username,
         emailAddress: email,
       });
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setAuthStep('verify-email');
       setEmailVerificationState('sent');
       setVerificationCode('');
-        setError('');
+      setError('');
     } catch (err) {
       console.error('Email verification code request failed', err);
       setEmailVerificationState('failed');
@@ -173,7 +163,7 @@ export default function AuthPage({ mode }) {
       await signUp.attemptEmailAddressVerification({ code: verificationCode });
       setEmailVerificationState('verified');
       setAuthStep('password');
-        setError('');
+      setError('');
     } catch (err) {
       console.error('Email verification error', err);
       setEmailVerificationState('failed');
@@ -189,11 +179,6 @@ export default function AuthPage({ mode }) {
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
     if (emailVerificationState !== 'verified') {
       setError('Please verify your email before creating the account');
       return;
@@ -201,11 +186,16 @@ export default function AuthPage({ mode }) {
 
     setLoading(true);
     try {
+      const { username, password } = generatedCredentials;
       const result = await signUp.update({
         username,
         password,
         firstName: firstName || undefined,
         lastName: lastName || undefined,
+        unsafeMetadata: {
+          generatedPassword: password,
+          generatedFromEmail: email,
+        },
       });
 
       if (result.status === 'complete' && result.createdSessionId) {
@@ -404,19 +394,6 @@ export default function AuthPage({ mode }) {
                     </label>
                   </div>
 
-                  <label className="auth-field">
-                    <span className="auth-field__icon">
-                      <svg viewBox="0 0 24 24" aria-hidden>
-                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-                        <path d="M4 21a8 8 0 0 1 16 0" />
-                      </svg>
-                    </span>
-                    <input className="task-input" placeholder="Username" value={username} onChange={(e) => {
-                      setUsername(e.target.value);
-                      if (authStep !== 'email') resetVerificationState();
-                    }} type="text" required />
-                  </label>
-
                   <label className="auth-field auth-field--email">
                     <span className="auth-field__icon">
                       <svg viewBox="0 0 24 24" aria-hidden>
@@ -490,40 +467,27 @@ export default function AuthPage({ mode }) {
                   )}
 
                   {authStep === 'password' && (
-                    <>
-                      <label className="auth-field">
-                        <span className="auth-field__icon">
-                          <svg viewBox="0 0 24 24" aria-hidden>
-                            <rect x="5" y="10" width="14" height="10" rx="2" />
-                            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-                          </svg>
-                        </span>
-                        <input
-                          className="task-input"
-                          placeholder="Password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          type="password"
-                          required
-                        />
-                      </label>
-                      <label className="auth-field">
-                        <span className="auth-field__icon">
-                          <svg viewBox="0 0 24 24" aria-hidden>
-                            <rect x="5" y="10" width="14" height="10" rx="2" />
-                            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-                          </svg>
-                        </span>
-                        <input
-                          className="task-input"
-                          placeholder="Confirm password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          type="password"
-                          required
-                        />
-                      </label>
-                    </>
+                    <div className="auth-generated-card">
+                      <div className="auth-generated-card__head">
+                        <strong>Your generated account details</strong>
+                        <span>Derived from {email || 'your email'}</span>
+                      </div>
+
+                      <div className="auth-generated-grid">
+                        <div className="auth-generated-field">
+                          <span>Username</span>
+                          <strong>{generatedCredentials.username}</strong>
+                        </div>
+                        <div className="auth-generated-field">
+                          <span>Password</span>
+                          <strong>Hidden</strong>
+                        </div>
+                      </div>
+
+                      <p className="auth-generated-note">
+                        These details are created automatically from your email address. The password is stored in the database and hidden on screen.
+                      </p>
+                    </div>
                   )}
 
                   {!isSignIn && <div id="clerk-captcha" className="clerk-captcha-slot" />}

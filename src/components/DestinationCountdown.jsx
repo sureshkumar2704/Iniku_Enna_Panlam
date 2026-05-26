@@ -78,8 +78,14 @@ export default function DestinationCountdown({ userId }) {
               value={tempDate} 
               onChange={e => setTempDate(e.target.value)} 
             />
-            <button className="btn btn-primary" onClick={handleSave} disabled={!tempDate}>Save</button>
-            {destDate && <button className="btn btn-ghost" onClick={() => setIsEditing(false)}>Cancel</button>}
+            <button className="dest-save-btn" onClick={handleSave} disabled={!tempDate}>
+              <svg viewBox="0 0 24 24" aria-hidden>
+                <path d="M5 12h14" />
+                <path d="m13 6 6 6-6 6" />
+              </svg>
+              <span>Save goal</span>
+            </button>
+            {destDate && <button className="dest-cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>}
           </div>
         </div>
       ) : (

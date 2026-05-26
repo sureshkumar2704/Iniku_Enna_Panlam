@@ -49,10 +49,26 @@ create table if not exists public.destination (
   date text
 );
 
+create table if not exists public.user_profiles (
+  id text primary key,
+  user_id text,
+  email text,
+  username text,
+  full_name text,
+  first_name text,
+  last_name text,
+  image_url text,
+  provider text,
+  generated_password text,
+  generated_from_email text,
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists tasks_user_date_idx on public.tasks (user_id, "dateKey");
 create index if not exists backlog_user_idx on public.backlog (user_id);
 create index if not exists sessions_user_date_idx on public.sessions (user_id, "dateKey");
 create index if not exists destination_user_idx on public.destination (user_id);
+create index if not exists user_profiles_user_idx on public.user_profiles (user_id);
 
 do $$
 begin
@@ -111,11 +127,13 @@ grant select, insert, update, delete on table public.tasks to anon, authenticate
 grant select, insert, update, delete on table public.backlog to anon, authenticated;
 grant select, insert, update, delete on table public.sessions to anon, authenticated;
 grant select, insert, update, delete on table public.destination to anon, authenticated;
+grant select, insert, update, delete on table public.user_profiles to anon, authenticated;
 
 alter table public.tasks enable row level security;
 alter table public.backlog enable row level security;
 alter table public.sessions enable row level security;
 alter table public.destination enable row level security;
+alter table public.user_profiles enable row level security;
 
 drop policy if exists tasks_allow_all on public.tasks;
 
@@ -220,3 +238,29 @@ create policy "Users can delete their own destination" on public.destination
   for delete
   to authenticated
   using (auth.jwt()->>'sub' = user_id);
+
+drop policy if exists user_profiles_allow_all on public.user_profiles;
+
+drop policy if exists "Users can insert their own profiles" on public.user_profiles;
+create policy "Users can insert their own profiles" on public.user_profiles
+  for insert
+  to authenticated
+  with check (auth.jwt()->>'sub' = user_id or auth.jwt()->>'sub' = id);
+
+drop policy if exists "Users can view their own profiles" on public.user_profiles;
+create policy "Users can view their own profiles" on public.user_profiles
+  for select
+  to authenticated
+  using (auth.jwt()->>'sub' = user_id or auth.jwt()->>'sub' = id);
+
+drop policy if exists "Users can update their own profiles" on public.user_profiles;
+create policy "Users can update their own profiles" on public.user_profiles
+  for update
+  to authenticated
+  using (auth.jwt()->>'sub' = user_id or auth.jwt()->>'sub' = id);
+
+drop policy if exists "Users can delete their own profiles" on public.user_profiles;
+create policy "Users can delete their own profiles" on public.user_profiles
+  for delete
+  to authenticated
+  using (auth.jwt()->>'sub' = user_id or auth.jwt()->>'sub' = id);

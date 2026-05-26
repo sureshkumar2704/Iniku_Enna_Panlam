@@ -10,9 +10,11 @@ Set `VITE_CLERK_PUBLISHABLE_KEY` in your local environment, then enable Google O
 
 ## Supabase Setup
 
-Apply [supabase/schema.sql](supabase/schema.sql) in your Supabase SQL editor before running the app. It creates the `tasks`, `backlog`, `sessions`, and `destination` tables the client expects.
+Apply [supabase/schema.sql](supabase/schema.sql) in your Supabase SQL editor before running the app. It creates the `tasks`, `backlog`, `sessions`, `destination`, and `user_profiles` tables the client expects.
 
 For your local env, you need `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` if you run the server functions that talk to Supabase.
+
+To backfill `user_profiles` for existing Clerk users, set `CLERK_SECRET_KEY` and run [scripts/backfill-profiles.mjs](scripts/backfill-profiles.mjs) or call the Netlify function at [netlify/functions/backfill-profiles.js](netlify/functions/backfill-profiles.js).
 
 For Clerk-to-Supabase auth, create a Clerk JWT template named `supabase` with the custom claims Clerk allows, such as:
 
