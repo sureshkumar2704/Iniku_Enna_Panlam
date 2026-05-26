@@ -1213,6 +1213,40 @@ body::before {
   .tp-arrow { transform: rotate(90deg); padding-bottom: 0; }
 }
 
+/* Extra small screens: tighten spacing, scale brand, enable calendar scroll */
+@media (max-width: 480px) {
+  .app-header { padding: 10px 0; }
+  .app-header-inner { padding: 0 12px; }
+  .app-logo { gap: 10px; }
+  .app-logo-icon { font-size: 2rem; }
+
+  .app-brand__image { width: 48px; height: 48px; border-radius: 12px; }
+  .app-brand__icon { font-size: 2.2rem; }
+  .app-brand__title { font-size: 1.05rem; }
+  .app-brand__subtitle { display: none; }
+
+  .app-title { font-size: 1.15rem; }
+
+  /* Calendar: allow horizontal scrolling if needed and reduce cell sizes */
+  .calendar-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .calendar-grid { grid-template-columns: repeat(7, minmax(56px, 1fr)); gap: 4px; padding: 8px; }
+  .calendar-cell { min-height: 42px; font-size: 0.78rem; padding: 6px 4px; }
+
+  /* Day header stacks and tightens */
+  .day-header { grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 8px; padding: 12px; }
+  .day-header-center { grid-column: 1 / -1; }
+
+  /* Task rows: stack secondary columns to improve readability */
+  .task-row { grid-template-columns: 32px 1fr 44px; grid-template-rows: auto auto; gap: 8px; padding: 10px; }
+  .task-row > *:nth-child(3) { grid-row: 1 / span 2; }
+
+  /* Modal and popups scale down */
+  .modal-box, .cp-popup { max-width: 94%; padding: 18px; }
+
+  /* Reduce paddings globally for small screens */
+  .page, .calendar-main, .calendar-layout, .day-main { padding-left: 8px; padding-right: 8px; }
+}
+
 /* ── Backlog (Deadline-free tasks) ── */
 .backlog-container {
   background: var(--bg-card);
