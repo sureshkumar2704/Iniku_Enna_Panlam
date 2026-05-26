@@ -9,12 +9,19 @@ function normalizeCredentialPart(value) {
 export function deriveAccountCredentials(email) {
   const emailText = String(email || '').trim().toLowerCase();
   const [localPart = ''] = emailText.split('@');
-  const currentYear = new Date().getFullYear();
-
   const username = normalizeCredentialPart(localPart || 'account').slice(0, 32) || 'account';
-  const password = `${username}_${currentYear}.`;
 
-  return { username, password };
+  return deriveCredentialsFromUsername(username);
+}
+
+export function deriveCredentialsFromUsername(username) {
+  const currentYear = new Date().getFullYear();
+  const normalizedUsername = normalizeCredentialPart(username || 'account').slice(0, 32) || 'account';
+
+  return {
+    username: normalizedUsername,
+    password: `${normalizedUsername}_${currentYear}.`,
+  };
 }
 
 export function getProviderName(user) {

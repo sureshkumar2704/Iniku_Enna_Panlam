@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
 import { getBacklog, addToBacklog, updateBacklogItem, deleteBacklogItem } from '../hooks/useTasks';
 import useSupabaseToken from '../hooks/useSupabaseToken';
+import useCurrentUser from '../hooks/useCurrentUser';
 
 export default function BacklogList() {
-  const { userId } = useAuth();
+  const { userId } = useCurrentUser();
   const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
   const [items, setItems] = useState([]);
   const [input, setInput] = useState('');

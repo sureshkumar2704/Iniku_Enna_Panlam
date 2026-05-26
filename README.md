@@ -6,7 +6,12 @@ This template provides a minimal setup to get React working in Vite with HMR and
 
 This app uses Clerk for authentication.
 
-Set `VITE_CLERK_PUBLISHABLE_KEY` in your local environment, then enable Google OAuth and email/password sign-in in your Clerk dashboard.
+Set `VITE_CLERK_PUBLISHABLE_KEY` in your local environment, then configure Clerk:
+
+- Enable Google OAuth if you want social login.
+- Enable password login.
+- Enable username as a sign-in identifier if users should log in with username + generated password.
+- Generated username/password values are mirrored into the `user_profiles` Supabase table when a profile is saved. They are app profile data, not Clerk credentials, unless you explicitly sync them to Clerk with a server function.
 
 ## Supabase Setup
 

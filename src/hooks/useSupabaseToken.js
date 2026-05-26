@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
+import { isLocalAuthEnabled } from '../utils/localAuth';
 
 export default function useSupabaseToken() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
@@ -10,6 +11,12 @@ export default function useSupabaseToken() {
     let active = true;
 
     if (!isLoaded) {
+      return undefined;
+    }
+
+    if (isLocalAuthEnabled()) {
+      setToken(null);
+      setIsReady(true);
       return undefined;
     }
 

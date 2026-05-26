@@ -1,12 +1,18 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
 import { getBacklog, addToBacklog, updateBacklogItem, deleteBacklogItem } from '../hooks/useTasks';
 import useSupabaseToken from '../hooks/useSupabaseToken';
+import useCurrentUser from '../hooks/useCurrentUser';
+
+const STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'not_completed', label: 'Not Completed' },
+];
 
 export default function TodoPage() {
   const navigate = useNavigate();
-  const { userId } = useAuth();
+  const { userId } = useCurrentUser();
   const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
   const [items, setItems] = useState([]);
   const [input, setInput] = useState('');
@@ -35,7 +41,13 @@ export default function TodoPage() {
   }
 
   async function toggleDone(item) {
-    await updateBacklogItem({ ...item, done: !item.done }, supabaseToken);
+    const nextStatus = item.status === 'completed' ? 'pending' : 'completed';
+    await updateBacklogItem({ ...item, status: nextStatus, done: nextStatus === 'completed' }, supabaseToken);
+    refresh();
+  }
+
+  async function updateStatus(item, status) {
+    await updateBacklogItem({ ...item, status, done: status === 'completed' }, supabaseToken);
     refresh();
   }
 
@@ -124,12 +136,12 @@ export default function TodoPage() {
             ) : (
               <div className="todo-list">
                 {items.map(item => (
-                  <div key={item.id} className={`todo-item ${item.done ? 'todo-item--done' : ''}`}>
+                  <div key={item.id} className={`todo-item ${item.status === 'completed' ? 'todo-item--done' : ''} ${item.status === 'not_completed' ? 'todo-item--not-completed' : ''}`}>
                     <button 
-                      className={`todo-check ${item.done ? 'todo-check--done' : ''}`}
+                      className={`todo-check ${item.status === 'completed' ? 'todo-check--done' : ''}`}
                       onClick={() => toggleDone(item)}
                     >
-                      {item.done ? '✓' : '○'}
+                      {item.status === 'completed' ? '✓' : item.status === 'not_completed' ? '✗' : '○'}
                     </button>
 
                     {editingId === item.id ? (
@@ -150,6 +162,17 @@ export default function TodoPage() {
                         {item.text}
                       </span>
                     )}
+
+                    <select
+                      className="todo-status-select"
+                      value={item.status || (item.done ? 'completed' : 'pending')}
+                      onChange={(e) => updateStatus(item, e.target.value)}
+                      aria-label={`Status for ${item.text}`}
+                    >
+                      {STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
 
                     <div className="todo-actions">
                       <button
@@ -174,7 +197,7 @@ export default function TodoPage() {
           
           {items.length > 0 && (
             <div className="todo-footer">
-              <span>{items.filter(i => !i.done).length} tasks remaining</span>
+              <span>{items.filter(i => i.status !== 'completed').length} tasks remaining</span>
               <span className="todo-hint">Double-click text to edit</span>
             </div>
           )}

@@ -2,12 +2,13 @@ import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { isGuestModeEnabled } from '../utils/guestMode';
+import { isLocalAuthEnabled } from '../utils/localAuth';
 
 export default function RequireAuth() {
   const { isLoaded, isSignedIn } = useAuth();
   const location = useLocation();
 
-  if (isGuestModeEnabled()) {
+  if (isGuestModeEnabled() || isLocalAuthEnabled()) {
     return <Outlet />;
   }
 

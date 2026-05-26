@@ -629,6 +629,27 @@ body::before {
 .task-row__bottom {
   display: contents;
 }
+
+/* Keep desktop/tablet column order fixed:
+   #, status, task, start, end, topics, delete */
+.task-row .task-num { grid-column: 1; }
+.task-row .task-status-btn { grid-column: 2; }
+.task-row .task-input--name { grid-column: 3; }
+.task-row .task-time-group:first-child { grid-column: 4; }
+.task-row .task-time-group:last-child { grid-column: 5; }
+.task-row .topics-list-container { grid-column: 6; }
+.task-row .task-delete-btn { grid-column: 7; }
+
+.task-row .task-num,
+.task-row .task-status-btn,
+.task-row .task-input--name,
+.task-row .task-time-group:first-child,
+.task-row .task-time-group:last-child,
+.task-row .topics-list-container,
+.task-row .task-delete-btn {
+  grid-row: 1;
+}
+
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(-10px); }
   to   { opacity: 1; transform: translateX(0); }
@@ -1625,6 +1646,7 @@ body::before {
 }
 .todo-item:hover { background: rgba(255, 255, 255, 0.02); }
 .todo-item--done .todo-text { text-decoration: line-through; opacity: 0.5; }
+.todo-item--not-completed .todo-text { color: #ff9db8; }
 
 .todo-check {
   width: 28px;
@@ -1646,6 +1668,24 @@ body::before {
 
 .todo-text { flex: 1; font-size: 1.05rem; color: var(--text-secondary); cursor: pointer; }
 .todo-edit-input { flex: 1; background: var(--bg-elevated); border: 1px solid var(--accent-primary); border-radius: var(--radius-sm); padding: 4px 8px; color: var(--text-primary); font-family: var(--font-body); font-size: 1.05rem; outline: none; }
+
+.todo-status-select {
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 0 10px;
+  outline: none;
+}
+
+.todo-status-select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
 
 .todo-actions { display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s ease; }
 .todo-item:hover .todo-actions { opacity: 1; }

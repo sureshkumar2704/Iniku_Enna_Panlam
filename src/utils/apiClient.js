@@ -4,7 +4,41 @@ function getClient(clerkToken) {
   return createSupabaseClient(clerkToken);
 }
 
+async function apiRequest(collection, method = 'GET', query = {}, body) {
+  const url = new URL(`/api/${collection}`, window.location.origin);
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, value);
+  });
+
+  const response = await fetch(url.pathname + url.search, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const text = await response.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) throw new Error(data?.error || data?.message || text || `${collection} request failed`);
+  return data;
+}
+
 async function fetchCollectionRecord(collection, candidateIds, clerkToken) {
+  if (!clerkToken) {
+    for (const candidateId of candidateIds) {
+      if (!candidateId) continue;
+      const data = await apiRequest(collection, 'GET', { id: candidateId });
+      const record = Array.isArray(data) ? data[0] : data;
+      if (record) return record;
+    }
+    return null;
+  }
+
   const supabase = getClient(clerkToken);
   for (const candidateId of candidateIds) {
     if (!candidateId) continue;
@@ -22,6 +56,18 @@ async function fetchCollectionRecord(collection, candidateIds, clerkToken) {
 }
 
 async function upsertCollectionRecord(collection, candidateIds, record, clerkToken) {
+  if (!clerkToken) {
+    const existingRecord = await fetchCollectionRecord(collection, candidateIds, clerkToken);
+    if (existingRecord?.id) {
+      await apiRequest(collection, 'PATCH', { id: existingRecord.id }, record);
+      return existingRecord.id;
+    }
+
+    const primaryId = candidateIds.find(Boolean) || record.id;
+    await apiRequest(collection, 'POST', null, { ...record, id: primaryId });
+    return primaryId;
+  }
+
   const supabase = getClient(clerkToken);
   const existingRecord = await fetchCollectionRecord(collection, candidateIds, clerkToken);
   try {
@@ -43,6 +89,12 @@ async function upsertCollectionRecord(collection, candidateIds, record, clerkTok
 }
 
 async function deleteCollectionRecord(collection, candidateIds, clerkToken) {
+  if (!clerkToken) {
+    const existingRecord = await fetchCollectionRecord(collection, candidateIds, clerkToken);
+    if (existingRecord?.id) await apiRequest(collection, 'DELETE', { id: existingRecord.id });
+    return;
+  }
+
   const supabase = getClient(clerkToken);
   const existingRecord = await fetchCollectionRecord(collection, candidateIds, clerkToken);
   if (!existingRecord?.id) return;
@@ -54,4 +106,13 @@ async function deleteCollectionRecord(collection, candidateIds, clerkToken) {
   }
 }
 
-export { deleteCollectionRecord, fetchCollectionRecord, upsertCollectionRecord };
+async function fetchCollectionRecords(collection, clerkToken) {
+  if (!clerkToken) return apiRequest(collection, 'GET');
+
+  const supabase = getClient(clerkToken);
+  const { data, error } = await supabase.from(collection).select('*');
+  if (error) throw error;
+  return data || [];
+}
+
+export { deleteCollectionRecord, fetchCollectionRecord, fetchCollectionRecords, upsertCollectionRecord };

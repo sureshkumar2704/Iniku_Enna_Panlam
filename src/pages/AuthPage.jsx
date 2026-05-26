@@ -4,6 +4,7 @@ import { useSignIn, useSignUp } from '@clerk/clerk-react';
 import AppBrand from '../components/AppBrand';
 import { deriveAccountCredentials } from '../utils/accountCredentials';
 import { disableGuestMode, enableGuestMode } from '../utils/guestMode';
+import { clearLocalAuthSession, setLocalAuthSession } from '../utils/localAuth';
 
 const clerkErrorMessages = {
   form_identifier_not_found: 'No account was found with that email or username.',
@@ -20,10 +21,26 @@ const clerkErrorMessages = {
   oauth_provider_not_enabled: 'This sign-in option is not enabled yet.',
 };
 
+async function attemptSupabaseProfileLogin(identifier, password) {
+  const response = await fetch('/api/profile-login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identifier, password }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.error || 'Supabase profile login failed.');
+  return data.profile;
+}
+
 function getAuthErrorMessage(err, fallback = 'Something went wrong. Please try again.') {
   const firstError = err?.errors?.[0];
   const code = firstError?.code || err?.code;
   const clerkMessage = firstError?.longMessage || firstError?.message || err?.longMessage || err?.message;
+
+  if (/verification strategy is not valid/i.test(String(clerkMessage || ''))) {
+    return 'Password login is not enabled for this account. Enable username/password sign-in in Clerk, or set a generated password from your profile first.';
+  }
 
   if (code && clerkErrorMessages[code]) {
     return clerkErrorMessages[code];
@@ -78,6 +95,7 @@ export default function AuthPage({ mode }) {
   const navigate = useNavigate();
   const { signIn, isLoaded: signInLoaded, setActive: setSignInActive } = useSignIn();
   const { signUp, isLoaded: signUpLoaded, setActive: setSignUpActive } = useSignUp();
+  const [identifier, setIdentifier] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
@@ -90,6 +108,7 @@ export default function AuthPage({ mode }) {
   const generatedCredentials = React.useMemo(() => deriveAccountCredentials(email), [email]);
 
   const continueAsGuest = () => {
+    clearLocalAuthSession();
     enableGuestMode();
     setError('');
     navigate('/');
@@ -100,6 +119,7 @@ export default function AuthPage({ mode }) {
       if (!signUpLoaded) return;
 
       disableGuestMode();
+      clearLocalAuthSession();
 
       await signUp.authenticateWithRedirect({
         strategy,
@@ -140,7 +160,12 @@ export default function AuthPage({ mode }) {
         firstName,
         lastName,
         username: generatedCredentials.username,
+        password: generatedCredentials.password,
         emailAddress: email,
+        unsafeMetadata: {
+          generatedPassword: generatedCredentials.password,
+          generatedFromEmail: email,
+        },
       });
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setAuthStep('verify-email');
@@ -169,8 +194,15 @@ export default function AuthPage({ mode }) {
 
     setLoading(true);
     try {
-      await signUp.attemptEmailAddressVerification({ code: verificationCode });
+      const result = await signUp.attemptEmailAddressVerification({ code: verificationCode });
       setEmailVerificationState('verified');
+
+      if (result.status === 'complete' && result.createdSessionId) {
+        await setSignUpActive({ session: result.createdSessionId });
+        navigate('/');
+        return;
+      }
+
       setAuthStep('password');
       setError('');
     } catch (err) {
@@ -198,7 +230,6 @@ export default function AuthPage({ mode }) {
       const { username, password } = generatedCredentials;
       const result = await signUp.update({
         username,
-        password,
         firstName: firstName || undefined,
         lastName: lastName || undefined,
         unsafeMetadata: {
@@ -316,8 +347,18 @@ export default function AuthPage({ mode }) {
                     setLoading(true);
                     try {
                       disableGuestMode();
+                      clearLocalAuthSession();
                       if (!signInLoaded) throw new Error('Auth not loaded');
-                      const result = await signIn.create({ identifier: email, password });
+                      try {
+                        const profile = await attemptSupabaseProfileLogin(identifier.trim(), password);
+                        setLocalAuthSession(profile);
+                        navigate('/');
+                        return;
+                      } catch (profileLoginError) {
+                        console.warn('Supabase profile login failed, trying Clerk', profileLoginError);
+                      }
+
+                      const result = await signIn.create({ identifier: identifier.trim(), password });
 
                       if (result.status === 'complete' && result.createdSessionId) {
                         await setSignInActive({ session: result.createdSessionId });
@@ -338,11 +379,19 @@ export default function AuthPage({ mode }) {
                   <label className="auth-field">
                     <span className="auth-field__icon">
                       <svg viewBox="0 0 24 24" aria-hidden>
-                        <path d="M4 6h16v12H4z" />
-                        <path d="m4 7 8 6 8-6" />
+                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                        <path d="M4 21a8 8 0 0 1 16 0" />
                       </svg>
                     </span>
-                    <input className="task-input" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
+                    <input
+                      className="task-input"
+                      placeholder="Email or username"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      type="text"
+                      autoComplete="username"
+                      required
+                    />
                   </label>
 
                   <label className="auth-field">
@@ -352,7 +401,7 @@ export default function AuthPage({ mode }) {
                         <path d="M8 10V7a4 4 0 0 1 8 0v3" />
                       </svg>
                     </span>
-                    <input className="task-input" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
+                    <input className="task-input" placeholder="Generated password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required />
                   </label>
 
                   {error && <div className="auth-error">{error}</div>}
@@ -366,6 +415,7 @@ export default function AuthPage({ mode }) {
                   onSubmit={async (e) => {
                     e.preventDefault();
                     setError('');
+                    clearLocalAuthSession();
                     disableGuestMode();
 
                     if (authStep === 'email') {

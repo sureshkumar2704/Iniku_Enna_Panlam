@@ -3,15 +3,18 @@ import { Link, Outlet } from 'react-router-dom';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import AppBrand from './AppBrand';
 import useSupabaseToken from '../hooks/useSupabaseToken';
+import useCurrentUser from '../hooks/useCurrentUser';
 import { deriveAccountCredentials } from '../utils/accountCredentials';
 import { upsertUserProfile } from '../utils/profileStore';
 import { disableGuestMode, isGuestModeEnabled } from '../utils/guestMode';
+import { clearLocalAuthSession } from '../utils/localAuth';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProtectedLayout() {
   const { signOut } = useClerk();
   const navigate = useNavigate();
   const { user, isLoaded } = useUser();
+  const currentUser = useCurrentUser();
   const { token, isReady, isSignedIn } = useSupabaseToken();
   const isGuest = isGuestModeEnabled();
 
@@ -23,7 +26,7 @@ export default function ProtectedLayout() {
     }
 
     async function syncProfile() {
-      if (isGuest || !isLoaded || !isReady || !isSignedIn || !user || !token) return;
+      if (currentUser.authType !== 'clerk' || isGuest || !isLoaded || !isReady || !isSignedIn || !user || !token) return;
 
       try {
         await upsertUserProfile(user, token, deriveAccountCredentials(user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress || ''));
@@ -39,9 +42,10 @@ export default function ProtectedLayout() {
     return () => {
       active = false;
     };
-  }, [isGuest, isLoaded, isReady, isSignedIn, token, user]);
+  }, [currentUser.authType, isGuest, isLoaded, isReady, isSignedIn, token, user]);
 
-  const avatarUrl = user?.imageUrl || user?.profileImageUrl || '';
+  const avatarUrl = currentUser.profile?.image_url || user?.imageUrl || user?.profileImageUrl || '';
+  const displayInitial = (currentUser.profile?.first_name || currentUser.profile?.username || user?.firstName || user?.username || 'U').slice(0, 1).toUpperCase();
 
   return (
     <div className="protected-layout">
@@ -65,10 +69,21 @@ export default function ProtectedLayout() {
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Profile" className="protected-header__avatar" />
                 ) : (
-                  <span className="protected-header__avatarFallback">{(user?.firstName || user?.username || 'U').slice(0, 1).toUpperCase()}</span>
+                  <span className="protected-header__avatarFallback">{displayInitial}</span>
                 )}
               </Link>
-              <button type="button" className="protected-header__signout" onClick={() => signOut({ redirectUrl: '/sign-in' })}>
+              <button
+                type="button"
+                className="protected-header__signout"
+                onClick={() => {
+                  if (currentUser.authType === 'supabase-profile') {
+                    clearLocalAuthSession();
+                    navigate('/sign-in');
+                    return;
+                  }
+                  signOut({ redirectUrl: '/sign-in' });
+                }}
+              >
                 <svg viewBox="0 0 24 24" aria-hidden>
                   <path d="M10 17v2a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v2" />
                   <path d="M15 12H3" />

@@ -1,5 +1,27 @@
 import { createSupabaseClient } from './supabase/client';
 
+async function profileApiRequest(method, query = {}, body) {
+  const url = new URL('/api/user_profiles', window.location.origin);
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, value);
+  });
+
+  const response = await fetch(url.pathname + url.search, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await response.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+  if (!response.ok) throw new Error(data?.error || data?.message || text || 'Profile request failed');
+  return data;
+}
+
 export function buildProfileRecord(user, generatedCredentials = {}) {
   const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || '';
   const username = user?.username || generatedCredentials.username || '';
@@ -41,7 +63,12 @@ export function buildStoredProfileRecord(record) {
 }
 
 export async function fetchUserProfile(userId, clerkToken) {
-  if (!userId || !clerkToken) return null;
+  if (!userId) return null;
+
+  if (!clerkToken) {
+    const data = await profileApiRequest('GET', { id: userId });
+    return buildStoredProfileRecord(Array.isArray(data) ? data[0] : data);
+  }
 
   const supabase = createSupabaseClient(clerkToken);
   const { data, error } = await supabase.from('user_profiles').select('*').eq('id', userId).maybeSingle();
@@ -51,10 +78,15 @@ export async function fetchUserProfile(userId, clerkToken) {
 }
 
 export async function upsertUserProfile(user, clerkToken, generatedCredentials = {}) {
-  if (!user?.id || !clerkToken) return null;
+  if (!user?.id) return null;
+
+  const record = buildProfileRecord(user, generatedCredentials);
+  if (!clerkToken) {
+    await profileApiRequest('POST', null, record);
+    return record;
+  }
 
   const supabase = createSupabaseClient(clerkToken);
-  const record = buildProfileRecord(user, generatedCredentials);
 
   const { error } = await supabase.from('user_profiles').upsert([record], { onConflict: 'id' });
   if (error) throw error;
@@ -63,13 +95,19 @@ export async function upsertUserProfile(user, clerkToken, generatedCredentials =
 }
 
 export async function saveUserProfile(profileRecord, clerkToken) {
-  if (!profileRecord?.id || !clerkToken) return null;
+  if (!profileRecord?.id) return null;
 
-  const supabase = createSupabaseClient(clerkToken);
   const record = {
     ...buildStoredProfileRecord(profileRecord),
     updated_at: new Date().toISOString(),
   };
+
+  if (!clerkToken) {
+    await profileApiRequest('PATCH', { id: record.id }, record);
+    return record;
+  }
+
+  const supabase = createSupabaseClient(clerkToken);
 
   const { error } = await supabase.from('user_profiles').upsert([record], { onConflict: 'id' });
   if (error) throw error;

@@ -32,8 +32,29 @@ create table if not exists public.backlog (
   user_id text,
   "text" text not null,
   done boolean not null default false,
+  status text not null default 'pending',
   "createdAt" timestamptz not null default now()
 );
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'backlog'
+      and column_name = 'status'
+  ) then
+    alter table public.backlog add column status text not null default 'pending';
+  end if;
+end $$;
+
+update public.backlog
+set status = case
+  when done then 'completed'
+  else 'pending'
+end
+where status is null or status not in ('pending', 'completed', 'not_completed');
 
 create table if not exists public.sessions (
   id text primary key,

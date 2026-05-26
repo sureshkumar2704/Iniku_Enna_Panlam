@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
 import TaskList from '../components/TaskList';
 import CopyYesterdayModal from '../components/CopyYesterdayModal';
+import useCurrentUser from '../hooks/useCurrentUser';
 import {
   formatFullDate,
   fromDateKey,
@@ -22,7 +22,7 @@ import { isGuestModeEnabled } from '../utils/guestMode';
 export default function DayPage() {
   const { dateKey } = useParams();
   const navigate = useNavigate();
-  const { userId } = useAuth();
+  const { userId } = useCurrentUser();
   const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
   const [tasks, setTasks] = useState([]);
   const [yesterdayTasks, setYesterdayTasks] = useState([]);

@@ -2,9 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import useSupabaseToken from '../hooks/useSupabaseToken';
-import { deriveAccountCredentials } from '../utils/accountCredentials';
+import useCurrentUser from '../hooks/useCurrentUser';
+import { deriveAccountCredentials, deriveCredentialsFromUsername } from '../utils/accountCredentials';
 import { fetchUserProfile, saveUserProfile, upsertUserProfile } from '../utils/profileStore';
 import { isGuestModeEnabled } from '../utils/guestMode';
+import { clearLocalAuthSession, setLocalAuthSession } from '../utils/localAuth';
 
 function copyText(value) {
   if (!value || !navigator?.clipboard?.writeText) return Promise.resolve();
@@ -13,6 +15,7 @@ function copyText(value) {
 
 export default function ProfilePage() {
   const { user, isLoaded } = useUser();
+  const currentUser = useCurrentUser();
   const { signOut } = useClerk();
   const { token, isReady, isSignedIn } = useSupabaseToken();
   const [profile, setProfile] = React.useState(null);
@@ -24,7 +27,9 @@ export default function ProfilePage() {
   const [error, setError] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
 
-  const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || '';
+  const activeUserId = currentUser.userId;
+  const localProfile = currentUser.profile;
+  const email = localProfile?.email || user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || '';
   const credentials = React.useMemo(() => deriveAccountCredentials(email), [email]);
   const avatarUrl = profile?.image_url || user?.imageUrl || user?.profileImageUrl || '';
   const profileInitial = (profile?.first_name || user?.firstName || profile?.username || user?.username || 'U').slice(0, 1).toUpperCase();
@@ -43,22 +48,23 @@ export default function ProfilePage() {
     }
 
     async function loadProfile() {
-      if (!isLoaded || !isReady || !isSignedIn || !user || !token) return;
+      if (!isLoaded && currentUser.authType === 'clerk') return;
+      if (!isReady || !isSignedIn || !activeUserId) return;
 
       setLoading(true);
       setError('');
       try {
-        const existingProfile = await fetchUserProfile(user.id, token);
-        const nextProfile = existingProfile || await upsertUserProfile(user, token, credentials);
+        const existingProfile = await fetchUserProfile(activeUserId, token);
+        const nextProfile = existingProfile || (user ? await upsertUserProfile(user, token, credentials) : localProfile);
 
         if (!active) return;
 
         setProfile(nextProfile);
         setForm({
           username: nextProfile?.username || credentials.username,
-          first_name: nextProfile?.first_name || user.firstName || '',
-          last_name: nextProfile?.last_name || user.lastName || '',
-          image_url: nextProfile?.image_url || user.imageUrl || '',
+          first_name: nextProfile?.first_name || user?.firstName || '',
+          last_name: nextProfile?.last_name || user?.lastName || '',
+          image_url: nextProfile?.image_url || user?.imageUrl || '',
           generated_password: nextProfile?.generated_password || credentials.password,
         });
           setIsEditing(false);
@@ -75,66 +81,57 @@ export default function ProfilePage() {
     return () => {
       active = false;
     };
-  }, [credentials, guestMode, isLoaded, isReady, isSignedIn, token, user]);
+  }, [activeUserId, credentials, currentUser.authType, guestMode, isLoaded, isReady, isSignedIn, localProfile, token, user]);
 
   const derivedUsername = profile?.username || credentials.username;
+  const generatedLoginPassword = profile?.generated_password || deriveCredentialsFromUsername(derivedUsername).password;
   const editedUsername = form.username || derivedUsername;
   const displayName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()
     || profile?.full_name
+    || localProfile?.full_name
     || user?.fullName
     || user?.firstName
     || 'Your profile';
 
   const handleChange = (field) => (event) => {
     const value = event.target.value;
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => {
+      if (field !== 'username') return { ...current, [field]: value };
+
+      const generated = deriveCredentialsFromUsername(value || derivedUsername);
+      return {
+        ...current,
+        username: value,
+        generated_password: generated.password,
+      };
+    });
   };
 
   const handleSaveProfile = async (event) => {
     event.preventDefault();
-    if (!user || !token) return;
+    if (!activeUserId) return;
 
     setSaving(true);
     setMessage('');
     setError('');
 
     try {
-      const nextUsername = form.username.trim() || derivedUsername;
-      const nextPassword = form.generated_password.trim() || credentials.password;
-      const currentPassword = profile?.generated_password || credentials.password;
+      const generatedCredentials = deriveCredentialsFromUsername(form.username.trim() || derivedUsername);
+      const nextUsername = generatedCredentials.username;
+      const nextPassword = form.generated_password.trim() || generatedCredentials.password;
       const nextFirstName = form.first_name.trim();
       const nextLastName = form.last_name.trim();
 
-      const clerkUpdatePayload = {};
-      if (nextUsername !== (user.username || '')) clerkUpdatePayload.username = nextUsername;
-      if (nextFirstName !== (user.firstName || '')) clerkUpdatePayload.firstName = nextFirstName || undefined;
-      if (nextLastName !== (user.lastName || '')) clerkUpdatePayload.lastName = nextLastName || undefined;
-
-      if (Object.keys(clerkUpdatePayload).length > 0) {
-        await user.update(clerkUpdatePayload);
-      }
-
-      if (nextPassword !== currentPassword) {
-        if (typeof user.updatePassword === 'function') {
-          await user.updatePassword({
-            currentPassword,
-            newPassword: nextPassword,
-          });
-        } else {
-          throw new Error('Password update is not available in this session. Please sign in again and retry.');
-        }
-      }
-
       const nextProfile = {
-        id: user.id,
-        user_id: user.id,
+        id: activeUserId,
+        user_id: activeUserId,
         email,
         username: nextUsername,
         first_name: nextFirstName,
         last_name: nextLastName,
         full_name: [nextFirstName, nextLastName].filter(Boolean).join(' ').trim(),
         image_url: form.image_url.trim(),
-        provider: profile?.provider || user.externalAccounts?.[0]?.provider || '',
+        provider: profile?.provider || user?.externalAccounts?.[0]?.provider || localProfile?.provider || 'supabase-profile',
         generated_password: nextPassword,
         generated_from_email: email,
       };
@@ -143,18 +140,26 @@ export default function ProfilePage() {
       if (!savedProfile) throw new Error('Profile save failed');
 
       setProfile(savedProfile);
-      setMessage('Profile saved and synced with Clerk.');
+      if (currentUser.authType === 'supabase-profile') setLocalAuthSession(savedProfile);
+      setForm({
+        username: savedProfile.username,
+        first_name: savedProfile.first_name,
+        last_name: savedProfile.last_name,
+        image_url: savedProfile.image_url,
+        generated_password: savedProfile.generated_password,
+      });
+      setMessage('Profile saved to Supabase.');
       setIsEditing(false);
     } catch (err) {
       console.error('Profile save failed', err);
-      const clerkMessage = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message;
-      setError(clerkMessage ? `Could not sync profile: ${clerkMessage}` : 'Could not save your profile changes.');
+      const profileMessage = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || '';
+      setError(profileMessage ? `Could not save profile: ${profileMessage}` : 'Could not save your profile changes.');
     } finally {
       setSaving(false);
     }
   };
 
-  if (guestMode || !user) {
+  if (guestMode || (!user && currentUser.authType !== 'supabase-profile')) {
     return (
       <main className="profile-page">
         <div className="profile-shell">
@@ -191,7 +196,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!isLoaded) {
+  if (!isLoaded && currentUser.authType === 'clerk') {
     return (
       <main className="profile-page profile-page--loading">
         <div className="profile-shell">
@@ -251,7 +256,7 @@ export default function ProfilePage() {
             <div className="profile-form__grid">
               <label className="profile-form__field profile-form__field--wide">
                 <span>Username</span>
-                <input className="task-input" type="text" value={form.username} onChange={handleChange('username')} />
+                <input className="task-input" type="text" value={form.username} onChange={handleChange('username')} autoComplete="username" />
               </label>
               <label className="profile-form__field profile-form__field--wide">
                 <span>Password</span>
@@ -261,7 +266,7 @@ export default function ProfilePage() {
                     type={showPassword ? 'text' : 'password'}
                     value={form.generated_password}
                     onChange={handleChange('generated_password')}
-                    autoComplete="off"
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"
@@ -310,9 +315,9 @@ export default function ProfilePage() {
                   setError('');
                   setForm({
                     username: profile?.username || credentials.username,
-                    first_name: profile?.first_name || user.firstName || '',
-                    last_name: profile?.last_name || user.lastName || '',
-                    image_url: profile?.image_url || user.imageUrl || '',
+                    first_name: profile?.first_name || user?.firstName || '',
+                    last_name: profile?.last_name || user?.lastName || '',
+                    image_url: profile?.image_url || user?.imageUrl || '',
                     generated_password: profile?.generated_password || credentials.password,
                   });
                 }}
@@ -343,6 +348,17 @@ export default function ProfilePage() {
             <div className="profile-card__hint">Generated from your email address.</div>
           </article>
 
+          <article className="profile-card">
+            <div className="profile-card__label">Generated password</div>
+            <div className="profile-card__value-row">
+              <strong>{showPassword ? generatedLoginPassword : 'Hidden'}</strong>
+              <button type="button" className="profile-copy-btn" onClick={() => copyText(generatedLoginPassword)}>
+                Copy
+              </button>
+            </div>
+            <div className="profile-card__hint">Saved in your Supabase profile row for app use.</div>
+          </article>
+
           <article className="profile-card profile-card--wide">
             <div className="profile-card__label">Email</div>
             <div className="profile-card__value-row">
@@ -356,7 +372,20 @@ export default function ProfilePage() {
         </section>
 
         <div className="profile-actions">
-          <button type="button" className="profile-signout-btn" aria-label="Sign out" title="Sign out" onClick={() => signOut({ redirectUrl: '/sign-in' })}>
+          <button
+            type="button"
+            className="profile-signout-btn"
+            aria-label="Sign out"
+            title="Sign out"
+            onClick={() => {
+              if (currentUser.authType === 'supabase-profile') {
+                clearLocalAuthSession();
+                window.location.assign('/sign-in');
+                return;
+              }
+              signOut({ redirectUrl: '/sign-in' });
+            }}
+          >
             <svg viewBox="0 0 24 24" aria-hidden>
               <path d="M10 17v2a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v2" />
               <path d="M15 12H3" />

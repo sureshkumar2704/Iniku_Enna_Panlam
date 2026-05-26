@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
 import CalendarGrid from '../components/CalendarGrid';
 import TodayProgress from '../components/TodayProgress';
 import DestinationCountdown from '../components/DestinationCountdown';
+import useCurrentUser from '../hooks/useCurrentUser';
 import { MONTHS } from '../utils/dateUtils';
 
 export default function CalendarPage() {
   const navigate = useNavigate();
-  const { userId } = useAuth();
+  const { userId } = useCurrentUser();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
