@@ -16,11 +16,13 @@ import {
   createEmptyTask,
   cloneTasksFromDate,
 } from '../hooks/useTasks';
+import useSupabaseToken from '../hooks/useSupabaseToken';
 
 export default function DayPage() {
   const { dateKey } = useParams();
   const navigate = useNavigate();
   const { userId } = useAuth();
+  const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
   const [tasks, setTasks] = useState([]);
   const [yesterdayTasks, setYesterdayTasks] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -34,10 +36,11 @@ export default function DayPage() {
   // Load tasks on mount / dateKey change
   useEffect(() => {
     let active = true;
+    if (!userId || !supabaseReady) return () => { active = false; };
     setIsLoaded(false);
     Promise.all([
-      getTasksForDate(dateKey, userId),
-      cloneTasksFromDate(yesterdayKey, userId)
+      getTasksForDate(dateKey, userId, supabaseToken),
+      cloneTasksFromDate(yesterdayKey, userId, supabaseToken)
     ]).then(([t, yt]) => {
       if (active) {
         setTasks(t);
@@ -46,14 +49,14 @@ export default function DayPage() {
       }
     });
     return () => { active = false; };
-  }, [dateKey, yesterdayKey, userId]);
+  }, [dateKey, yesterdayKey, userId, supabaseReady, supabaseToken]);
 
   // Auto-save whenever tasks change
   useEffect(() => {
     if (!isLoaded) return;
-    saveTasksForDate(dateKey, tasks, userId);
+    saveTasksForDate(dateKey, tasks, userId, supabaseToken);
     flashSaved();
-  }, [tasks, dateKey, isLoaded, userId]);
+  }, [tasks, dateKey, isLoaded, userId, supabaseToken]);
 
   function flashSaved() {
     setSavedIndicator(true);

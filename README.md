@@ -8,6 +8,23 @@ This app uses Clerk for authentication.
 
 Set `VITE_CLERK_PUBLISHABLE_KEY` in your local environment, then enable Google OAuth and email/password sign-in in your Clerk dashboard.
 
+## Supabase Setup
+
+Apply [supabase/schema.sql](supabase/schema.sql) in your Supabase SQL editor before running the app. It creates the `tasks`, `backlog`, `sessions`, and `destination` tables the client expects.
+
+For your local env, you need `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` if you run the server functions that talk to Supabase.
+
+For Clerk-to-Supabase auth, create a Clerk JWT template named `supabase` with the custom claims Clerk allows, such as:
+
+```json
+{
+	"aud": "authenticated",
+	"role": "authenticated"
+}
+```
+
+Do not add `sub` manually. Clerk reserves it and will reject the template. Pass `getToken({ template: 'supabase' })` to Supabase requests, and Clerk will still include the user subject in the token.
+
 An example environment file is available at `.env.example`.
 
 Currently, two official plugins are available:

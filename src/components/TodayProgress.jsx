@@ -3,11 +3,12 @@ import ClockPicker from './ClockPicker';
 import { todayKey } from '../utils/dateUtils';
 import { getCompletionStats } from '../hooks/useTasks';
 import { fetchCollectionRecord, upsertCollectionRecord } from '../utils/apiClient';
+import useSupabaseToken from '../hooks/useSupabaseToken';
 
-async function saveSession(dateKey, data, userId) {
+async function saveSession(dateKey, data, userId, clerkToken) {
   const id = `${userId || 'public'}::${dateKey}`;
   try {
-    await upsertCollectionRecord('sessions', [id, dateKey], { id, userId, dateKey, ...data });
+    await upsertCollectionRecord('sessions', [id, dateKey], { id, user_id: userId, dateKey, ...data }, clerkToken);
   } catch {}
 }
 
@@ -30,29 +31,31 @@ function fmt12(timeStr) {
 
 export default function TodayProgress({ userId }) {
   const dateKey = todayKey();
+  const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
   const [session, setSession] = useState({ startTime: '', endTime: '' });
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
     let active = true;
-    fetchCollectionRecord('sessions', [`${userId || 'public'}::${dateKey}`, dateKey])
+    if (!supabaseReady) return () => { active = false; };
+    fetchCollectionRecord('sessions', [`${userId || 'public'}::${dateKey}`, dateKey], supabaseToken)
       .then(data => data || { startTime: '', endTime: '' })
       .then(data => { if (active) setSession({ startTime: data.startTime || '', endTime: data.endTime || '' }); })
       .catch(() => { if (active) setSession({ startTime: '', endTime: '' }); });
 
-    getCompletionStats(dateKey, userId).then(data => { if (active) setStats(data); });
+    getCompletionStats(dateKey, userId, supabaseToken).then(data => { if (active) setStats(data); });
     
     // refresh stats every 10s in case day page updates
     const id = setInterval(() => {
-      getCompletionStats(dateKey, userId).then(data => { if (active) setStats(data); });
+      getCompletionStats(dateKey, userId, supabaseToken).then(data => { if (active) setStats(data); });
     }, 10000);
     return () => { active = false; clearInterval(id); };
-  }, [dateKey, userId]);
+  }, [dateKey, userId, supabaseReady, supabaseToken]);
 
   function update(field, val) {
     const next = { ...session, [field]: val };
     setSession(next);
-    saveSession(dateKey, next, userId);
+    saveSession(dateKey, next, userId, supabaseToken);
   }
 
   const duration = calcDuration(session.startTime, session.endTime);

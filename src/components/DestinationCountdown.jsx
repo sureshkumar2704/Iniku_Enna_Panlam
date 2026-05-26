@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { fromDateKey } from '../utils/dateUtils';
 import { deleteCollectionRecord, fetchCollectionRecord, upsertCollectionRecord } from '../utils/apiClient';
+import useSupabaseToken from '../hooks/useSupabaseToken';
 
 export default function DestinationCountdown({ userId }) {
+  const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
   const [destDate, setDestDate] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [tempDate, setTempDate] = useState('');
@@ -10,7 +12,8 @@ export default function DestinationCountdown({ userId }) {
 
   useEffect(() => {
     let active = true;
-    fetchCollectionRecord('destination', [destinationId, 'main'])
+    if (!supabaseReady) return () => { active = false; };
+    fetchCollectionRecord('destination', [destinationId, 'main'], supabaseToken)
       .then(data => {
         if (active) {
           if (data && data.date) {
@@ -29,7 +32,7 @@ export default function DestinationCountdown({ userId }) {
       setDestDate(tempDate);
       setIsEditing(false);
       try {
-        await upsertCollectionRecord('destination', [destinationId, 'main'], { id: destinationId, userId, date: tempDate });
+        await upsertCollectionRecord('destination', [destinationId, 'main'], { id: destinationId, user_id: userId, date: tempDate }, supabaseToken);
       } catch {}
     }
   }
@@ -39,7 +42,7 @@ export default function DestinationCountdown({ userId }) {
     setTempDate('');
     setIsEditing(true);
     try {
-      await deleteCollectionRecord('destination', [destinationId, 'main']);
+      await deleteCollectionRecord('destination', [destinationId, 'main'], supabaseToken);
     } catch {}
   }
 

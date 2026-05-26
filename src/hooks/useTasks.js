@@ -1,13 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
 import { fetchCollectionRecord, upsertCollectionRecord } from '../utils/apiClient';
+import { createSupabaseClient } from '../utils/supabase/client';
 
 function scopedId(userId, key) {
   return userId ? `${userId}::${key}` : key;
 }
 
-export async function getTasksForDate(dateKey, userId) {
+export async function getTasksForDate(dateKey, userId, clerkToken) {
   try {
-    const record = await fetchCollectionRecord('tasks', [scopedId(userId, dateKey), dateKey]);
+    const record = await fetchCollectionRecord('tasks', [scopedId(userId, dateKey), dateKey], clerkToken);
     return record?.items || [];
   } catch (error) {
     console.error("Failed to fetch tasks", error);
@@ -15,10 +16,10 @@ export async function getTasksForDate(dateKey, userId) {
   }
 }
 
-export async function saveTasksForDate(dateKey, tasks, userId) {
+export async function saveTasksForDate(dateKey, tasks, userId, clerkToken) {
   const id = scopedId(userId, dateKey);
   try {
-    await upsertCollectionRecord('tasks', [id, dateKey], { id, userId, dateKey, items: tasks });
+    await upsertCollectionRecord('tasks', [id, dateKey], { id, user_id: userId, dateKey, items: tasks }, clerkToken);
   } catch (error) {
     console.error("Failed to save tasks", error);
   }
@@ -36,8 +37,8 @@ export function createEmptyTask(overrides = {}) {
   };
 }
 
-export async function cloneTasksFromDate(sourceDateKey, userId) {
-  const tasks = await getTasksForDate(sourceDateKey, userId);
+export async function cloneTasksFromDate(sourceDateKey, userId, clerkToken) {
+  const tasks = await getTasksForDate(sourceDateKey, userId, clerkToken);
   return tasks.map((t) => ({
     ...t,
     id: uuidv4(),
@@ -47,63 +48,63 @@ export async function cloneTasksFromDate(sourceDateKey, userId) {
   }));
 }
 
-export async function getCompletionStats(dateKey, userId) {
-  const tasks = await getTasksForDate(dateKey, userId);
+export async function getCompletionStats(dateKey, userId, clerkToken) {
+  const tasks = await getTasksForDate(dateKey, userId, clerkToken);
   if (!tasks.length) return null;
   const done = tasks.filter((t) => t.status === 'done').length;
   return { done, total: tasks.length };
 }
 
-export async function getAllStats(userId) {
+export async function getAllStats(userId, clerkToken) {
   try {
-    const res = await fetch(`/api/tasks`);
-    if (res.ok) {
-      const all = await res.json();
-      const statsMap = {};
-      all.forEach(record => {
-        if (record.userId === userId && record.items && record.items.length > 0) {
-          const done = record.items.filter(t => t.status === 'done').length;
-          statsMap[record.dateKey || record.id] = { done, total: record.items.length };
-        }
-      });
-      return statsMap;
-    }
+    const supabase = createSupabaseClient(clerkToken);
+    const { data: all, error } = await supabase.from('tasks').select('*');
+    if (error) throw error;
+    const statsMap = {};
+    (all || []).forEach((record) => {
+      if (record.user_id === userId && record.items && record.items.length > 0) {
+        const done = record.items.filter((t) => t.status === 'done').length;
+        statsMap[record.dateKey || record.id] = { done, total: record.items.length };
+      }
+    });
+    return statsMap;
   } catch (error) {
     console.error("Failed to fetch all tasks", error);
   }
   return {};
 }
 
-export async function getBacklog(userId) {
+export async function getBacklog(userId, clerkToken) {
   try {
-    const res = await fetch(`/api/backlog?ownerId=${encodeURIComponent(userId || '')}`);
-    if (res.ok) return await res.json();
+    const supabase = createSupabaseClient(clerkToken);
+    const { data, error } = await supabase.from('backlog').select('*').eq('user_id', userId || '');
+    if (error) throw error;
+    return data || [];
   } catch (e) { console.error(e); }
   return [];
 }
 
-export async function addToBacklog(text, userId) {
+export async function addToBacklog(text, userId, clerkToken) {
   try {
-    await fetch('/api/backlog', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: uuidv4(), ownerId: userId, text, done: false, createdAt: new Date().toISOString() }),
-    });
+    const supabase = createSupabaseClient(clerkToken);
+    const item = { id: uuidv4(), user_id: userId, text, done: false, createdAt: new Date().toISOString() };
+    const { error } = await supabase.from('backlog').insert([item]);
+    if (error) throw error;
   } catch (e) { console.error(e); }
 }
 
-export async function updateBacklogItem(item) {
+export async function updateBacklogItem(item, clerkToken) {
   try {
-    await fetch(`/api/backlog/${item.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item),
-    });
+    const supabase = createSupabaseClient(clerkToken);
+    const { error } = await supabase.from('backlog').update(item).eq('id', item.id);
+    if (error) throw error;
   } catch (e) { console.error(e); }
 }
 
-export async function deleteBacklogItem(id) {
+export async function deleteBacklogItem(id, clerkToken) {
   try {
-    await fetch(`/api/backlog/${id}`, { method: 'DELETE' });
+    const supabase = createSupabaseClient(clerkToken);
+    const { error } = await supabase.from('backlog').delete().eq('id', id);
+    if (error) throw error;
   } catch (e) { console.error(e); }
 }

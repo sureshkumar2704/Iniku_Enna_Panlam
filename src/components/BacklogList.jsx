@@ -1,37 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { getBacklog, addToBacklog, updateBacklogItem, deleteBacklogItem } from '../hooks/useTasks';
+import useSupabaseToken from '../hooks/useSupabaseToken';
 
 export default function BacklogList() {
   const { userId } = useAuth();
+  const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
   const [items, setItems] = useState([]);
   const [input, setInput] = useState('');
 
   useEffect(() => {
+    if (!supabaseReady) return;
     refresh();
-  }, [userId]);
+  }, [userId, supabaseReady, supabaseToken]);
 
   async function refresh() {
-    const data = await getBacklog(userId);
+    const data = await getBacklog(userId, supabaseToken);
     setItems(data);
   }
 
   async function handleAdd(e) {
     if (e.key === 'Enter' && input.trim()) {
       e.preventDefault();
-      await addToBacklog(input.trim(), userId);
+      await addToBacklog(input.trim(), userId, supabaseToken);
       setInput('');
       refresh();
     }
   }
 
   async function toggleDone(item) {
-    await updateBacklogItem({ ...item, done: !item.done });
+    await updateBacklogItem({ ...item, done: !item.done }, supabaseToken);
     refresh();
   }
 
   async function handleDelete(id) {
-    await deleteBacklogItem(id);
+    await deleteBacklogItem(id, supabaseToken);
     refresh();
   }
 

@@ -9,9 +9,11 @@ import {
   todayKey,
 } from '../utils/dateUtils';
 import { getAllStats } from '../hooks/useTasks';
+import useSupabaseToken from '../hooks/useSupabaseToken';
 
 export default function CalendarGrid({ year, month, userId }) {
   const navigate = useNavigate();
+  const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
   const today = todayKey();
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
@@ -19,11 +21,12 @@ export default function CalendarGrid({ year, month, userId }) {
 
   useEffect(() => {
     let active = true;
-    getAllStats(userId).then(data => {
+    if (!supabaseReady) return () => { active = false; };
+    getAllStats(userId, supabaseToken).then(data => {
       if (active) setStatsMap(data);
     });
     return () => { active = false; };
-  }, [year, month, userId]);
+  }, [year, month, userId, supabaseReady, supabaseToken]);
 
   // Build grid cells (blanks + days)
   const cells = [];

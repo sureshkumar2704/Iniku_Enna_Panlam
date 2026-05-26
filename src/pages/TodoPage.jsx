@@ -2,21 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { getBacklog, addToBacklog, updateBacklogItem, deleteBacklogItem } from '../hooks/useTasks';
+import useSupabaseToken from '../hooks/useSupabaseToken';
 
 export default function TodoPage() {
   const navigate = useNavigate();
   const { userId } = useAuth();
+  const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
   const [items, setItems] = useState([]);
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
 
   useEffect(() => {
+    if (!supabaseReady) return;
     refresh();
-  }, [userId]);
+  }, [userId, supabaseReady, supabaseToken]);
 
   async function refresh() {
-    const data = await getBacklog(userId);
+    const data = await getBacklog(userId, supabaseToken);
     // Sort by creation date if available, or just newest first
     setItems(data.reverse());
   }
@@ -24,20 +27,20 @@ export default function TodoPage() {
   async function handleAdd(e) {
     if ((e.key === 'Enter' || e.type === 'click') && input.trim()) {
       if (e.key === 'Enter') e.preventDefault();
-      await addToBacklog(input.trim(), userId);
+      await addToBacklog(input.trim(), userId, supabaseToken);
       setInput('');
       refresh();
     }
   }
 
   async function toggleDone(item) {
-    await updateBacklogItem({ ...item, done: !item.done });
+    await updateBacklogItem({ ...item, done: !item.done }, supabaseToken);
     refresh();
   }
 
   async function handleDelete(id) {
     if (window.confirm('Delete this task?')) {
-      await deleteBacklogItem(id);
+      await deleteBacklogItem(id, supabaseToken);
       refresh();
     }
   }
@@ -49,7 +52,7 @@ export default function TodoPage() {
 
   async function saveEdit(item) {
     if (editValue.trim() && editValue !== item.text) {
-      await updateBacklogItem({ ...item, text: editValue.trim() });
+      await updateBacklogItem({ ...item, text: editValue.trim() }, supabaseToken);
     }
     setEditingId(null);
     refresh();
@@ -59,7 +62,7 @@ export default function TodoPage() {
     const completed = items.filter(i => i.done);
     if (completed.length === 0) return;
     if (window.confirm(`Clear ${completed.length} completed tasks?`)) {
-      await Promise.all(completed.map(item => deleteBacklogItem(item.id)));
+      await Promise.all(completed.map(item => deleteBacklogItem(item.id, supabaseToken)));
       refresh();
     }
   }

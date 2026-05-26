@@ -1,44 +1,57 @@
-async function fetchCollectionRecord(collection, candidateIds) {
+import { createSupabaseClient } from './supabase/client';
+
+function getClient(clerkToken) {
+  return createSupabaseClient(clerkToken);
+}
+
+async function fetchCollectionRecord(collection, candidateIds, clerkToken) {
+  const supabase = getClient(clerkToken);
   for (const candidateId of candidateIds) {
     if (!candidateId) continue;
-
-    const response = await fetch(`/api/${collection}?id=${encodeURIComponent(candidateId)}`);
-    if (!response.ok) continue;
-
-    const records = await response.json();
-    if (Array.isArray(records) && records.length > 0) {
-      return records[0];
+    try {
+      const { data, error } = await supabase.from(collection).select('*').eq('id', candidateId).limit(1).maybeSingle();
+      if (error) continue;
+      if (data) return data;
+    } catch (err) {
+      console.error('Supabase fetch error', err);
+      continue;
     }
   }
 
   return null;
 }
 
-async function upsertCollectionRecord(collection, candidateIds, record) {
-  const existingRecord = await fetchCollectionRecord(collection, candidateIds);
-  if (existingRecord?.id) {
-    await fetch(`/api/${collection}/${encodeURIComponent(existingRecord.id)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...record, id: existingRecord.id }),
-    });
-    return existingRecord.id;
-  }
+async function upsertCollectionRecord(collection, candidateIds, record, clerkToken) {
+  const supabase = getClient(clerkToken);
+  const existingRecord = await fetchCollectionRecord(collection, candidateIds, clerkToken);
+  try {
+    if (existingRecord?.id) {
+      const { error } = await supabase.from(collection).update(record).eq('id', existingRecord.id);
+      if (error) throw error;
+      return existingRecord.id;
+    }
 
-  const primaryId = candidateIds.find(Boolean);
-  await fetch(`/api/${collection}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...record, id: primaryId }),
-  });
-  return primaryId;
+    const primaryId = candidateIds.find(Boolean) || record.id;
+    const toInsert = { ...record, id: primaryId };
+    const { error } = await supabase.from(collection).insert([toInsert]);
+    if (error) throw error;
+    return primaryId;
+  } catch (err) {
+    console.error('Supabase upsert error', err);
+    throw err;
+  }
 }
 
-async function deleteCollectionRecord(collection, candidateIds) {
-  const existingRecord = await fetchCollectionRecord(collection, candidateIds);
+async function deleteCollectionRecord(collection, candidateIds, clerkToken) {
+  const supabase = getClient(clerkToken);
+  const existingRecord = await fetchCollectionRecord(collection, candidateIds, clerkToken);
   if (!existingRecord?.id) return;
-
-  await fetch(`/api/${collection}/${encodeURIComponent(existingRecord.id)}`, { method: 'DELETE' });
+  try {
+    const { error } = await supabase.from(collection).delete().eq('id', existingRecord.id);
+    if (error) throw error;
+  } catch (err) {
+    console.error('Supabase delete error', err);
+  }
 }
 
 export { deleteCollectionRecord, fetchCollectionRecord, upsertCollectionRecord };

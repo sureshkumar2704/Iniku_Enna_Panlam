@@ -1,11 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Works for Vite (import.meta.env) and Next-style env names.
-const SUPABASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY) || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_URL = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_SUPABASE_URL : undefined;
+const SUPABASE_ANON_KEY = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_SUPABASE_ANON_KEY : undefined;
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.warn('Supabase client missing URL or key. Set VITE_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL and publishable key.');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.warn('Supabase client missing URL or key. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
 }
 
-export const supabase = createClient(SUPABASE_URL || '', SUPABASE_KEY || '');
+export function createSupabaseClient(clerkToken) {
+  const options = clerkToken
+    ? {
+        global: {
+          headers: {
+            Authorization: `Bearer ${clerkToken}`,
+          },
+        },
+      }
+    : undefined;
+
+  return createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '', options);
+}
+
+export const supabase = createSupabaseClient();
