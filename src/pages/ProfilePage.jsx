@@ -4,6 +4,7 @@ import { useClerk, useUser } from '@clerk/clerk-react';
 import useSupabaseToken from '../hooks/useSupabaseToken';
 import { deriveAccountCredentials } from '../utils/accountCredentials';
 import { fetchUserProfile, saveUserProfile, upsertUserProfile } from '../utils/profileStore';
+import { isGuestModeEnabled } from '../utils/guestMode';
 
 function copyText(value) {
   if (!value || !navigator?.clipboard?.writeText) return Promise.resolve();
@@ -15,7 +16,7 @@ export default function ProfilePage() {
   const { signOut } = useClerk();
   const { token, isReady, isSignedIn } = useSupabaseToken();
   const [profile, setProfile] = React.useState(null);
-  const [form, setForm] = React.useState({ full_name: '', first_name: '', last_name: '', image_url: '' });
+  const [form, setForm] = React.useState({ username: '', first_name: '', last_name: '', image_url: '', generated_password: '' });
   const [isEditing, setIsEditing] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -27,9 +28,19 @@ export default function ProfilePage() {
   const credentials = React.useMemo(() => deriveAccountCredentials(email), [email]);
   const avatarUrl = profile?.image_url || user?.imageUrl || user?.profileImageUrl || '';
   const profileInitial = (profile?.first_name || user?.firstName || profile?.username || user?.username || 'U').slice(0, 1).toUpperCase();
+  const guestMode = isGuestModeEnabled();
 
   React.useEffect(() => {
     let active = true;
+
+    if (guestMode) {
+      setLoading(false);
+      setIsEditing(false);
+      setProfile(null);
+      return () => {
+        active = false;
+      };
+    }
 
     async function loadProfile() {
       if (!isLoaded || !isReady || !isSignedIn || !user || !token) return;
@@ -44,10 +55,11 @@ export default function ProfilePage() {
 
         setProfile(nextProfile);
         setForm({
-          full_name: nextProfile?.full_name || user.fullName || '',
+          username: nextProfile?.username || credentials.username,
           first_name: nextProfile?.first_name || user.firstName || '',
           last_name: nextProfile?.last_name || user.lastName || '',
           image_url: nextProfile?.image_url || user.imageUrl || '',
+          generated_password: nextProfile?.generated_password || credentials.password,
         });
           setIsEditing(false);
       } catch (err) {
@@ -63,10 +75,15 @@ export default function ProfilePage() {
     return () => {
       active = false;
     };
-  }, [credentials, isLoaded, isReady, isSignedIn, token, user]);
+  }, [credentials, guestMode, isLoaded, isReady, isSignedIn, token, user]);
 
   const derivedUsername = profile?.username || credentials.username;
-  const displayedPassword = profile?.generated_password || credentials.password;
+  const editedUsername = form.username || derivedUsername;
+  const displayName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()
+    || profile?.full_name
+    || user?.fullName
+    || user?.firstName
+    || 'Your profile';
 
   const handleChange = (field) => (event) => {
     const value = event.target.value;
@@ -82,17 +99,43 @@ export default function ProfilePage() {
     setError('');
 
     try {
+      const nextUsername = form.username.trim() || derivedUsername;
+      const nextPassword = form.generated_password.trim() || credentials.password;
+      const currentPassword = profile?.generated_password || credentials.password;
+      const nextFirstName = form.first_name.trim();
+      const nextLastName = form.last_name.trim();
+
+      const clerkUpdatePayload = {};
+      if (nextUsername !== (user.username || '')) clerkUpdatePayload.username = nextUsername;
+      if (nextFirstName !== (user.firstName || '')) clerkUpdatePayload.firstName = nextFirstName || undefined;
+      if (nextLastName !== (user.lastName || '')) clerkUpdatePayload.lastName = nextLastName || undefined;
+
+      if (Object.keys(clerkUpdatePayload).length > 0) {
+        await user.update(clerkUpdatePayload);
+      }
+
+      if (nextPassword !== currentPassword) {
+        if (typeof user.updatePassword === 'function') {
+          await user.updatePassword({
+            currentPassword,
+            newPassword: nextPassword,
+          });
+        } else {
+          throw new Error('Password update is not available in this session. Please sign in again and retry.');
+        }
+      }
+
       const nextProfile = {
         id: user.id,
         user_id: user.id,
         email,
-        username: derivedUsername,
-        full_name: form.full_name.trim(),
-        first_name: form.first_name.trim(),
-        last_name: form.last_name.trim(),
+        username: nextUsername,
+        first_name: nextFirstName,
+        last_name: nextLastName,
+        full_name: [nextFirstName, nextLastName].filter(Boolean).join(' ').trim(),
         image_url: form.image_url.trim(),
         provider: profile?.provider || user.externalAccounts?.[0]?.provider || '',
-        generated_password: profile?.generated_password || credentials.password,
+        generated_password: nextPassword,
         generated_from_email: email,
       };
 
@@ -100,15 +143,53 @@ export default function ProfilePage() {
       if (!savedProfile) throw new Error('Profile save failed');
 
       setProfile(savedProfile);
-      setMessage('Profile saved.');
+      setMessage('Profile saved and synced with Clerk.');
       setIsEditing(false);
     } catch (err) {
       console.error('Profile save failed', err);
-      setError('Could not save your profile changes.');
+      const clerkMessage = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message;
+      setError(clerkMessage ? `Could not sync profile: ${clerkMessage}` : 'Could not save your profile changes.');
     } finally {
       setSaving(false);
     }
   };
+
+  if (guestMode || !user) {
+    return (
+      <main className="profile-page">
+        <div className="profile-shell">
+          <section className="profile-hero">
+            <div className="profile-hero__actions">
+              <Link to="/" className="profile-back-btn" aria-label="Back to home">
+                <svg viewBox="0 0 24 24" aria-hidden>
+                  <path d="m14 6-6 6 6 6" />
+                  <path d="M20 12H8" />
+                </svg>
+                <span>Home</span>
+              </Link>
+            </div>
+            <div className="profile-hero__identity">
+              <div className="profile-hero__avatar">
+                <span>G</span>
+              </div>
+              <div>
+                <span className="profile-eyebrow">Guest mode</span>
+                <h1>Browse without an account</h1>
+              </div>
+            </div>
+            <p>
+              You can use the app without signing in. Changes stay local in this session and are not saved to Supabase.
+            </p>
+          </section>
+
+          <section className="profile-card profile-card--wide">
+            <div className="profile-card__label">Default access</div>
+            <div className="profile-card__hint">Profile storage is disabled until you sign in.</div>
+          </section>
+        </div>
+      </main>
+    );
+  }
 
   if (!isLoaded) {
     return (
@@ -156,7 +237,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <span className="profile-eyebrow">Account</span>
-              <h1>{profile?.full_name || user?.fullName || user?.firstName || 'Your profile'}</h1>
+              <h1>{displayName}</h1>
             </div>
           </div>
           <p>
@@ -168,32 +249,20 @@ export default function ProfilePage() {
           <form className="profile-card profile-card--wide profile-form" onSubmit={handleSaveProfile}>
             <div className="profile-card__label">Edit profile</div>
             <div className="profile-form__grid">
-              <label className="profile-form__field">
-                <span>Full name</span>
-                <input className="task-input" type="text" value={form.full_name} onChange={handleChange('full_name')} />
-              </label>
-              <label className="profile-form__field">
-                <span>First name</span>
-                <input className="task-input" type="text" value={form.first_name} onChange={handleChange('first_name')} />
-              </label>
-              <label className="profile-form__field">
-                <span>Last name</span>
-                <input className="task-input" type="text" value={form.last_name} onChange={handleChange('last_name')} />
+              <label className="profile-form__field profile-form__field--wide">
+                <span>Username</span>
+                <input className="task-input" type="text" value={form.username} onChange={handleChange('username')} />
               </label>
               <label className="profile-form__field profile-form__field--wide">
-                <span>Avatar URL</span>
-                <input className="task-input" type="url" value={form.image_url} onChange={handleChange('image_url')} placeholder="https://..." />
-              </label>
-            </div>
-            <div className="profile-form__meta">
-              <div>
-                <span className="profile-card__label">Username</span>
-                <strong>{derivedUsername}</strong>
-              </div>
-              <div>
-                <span className="profile-card__label">Password</span>
+                <span>Password</span>
                 <div className="profile-password-row">
-                  <strong>{showPassword ? displayedPassword : 'Hidden'}</strong>
+                  <input
+                    className="task-input profile-password-input"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.generated_password}
+                    onChange={handleChange('generated_password')}
+                    autoComplete="off"
+                  />
                   <button
                     type="button"
                     className="profile-password-toggle"
@@ -215,7 +284,19 @@ export default function ProfilePage() {
                     )}
                   </button>
                 </div>
-              </div>
+              </label>
+              <label className="profile-form__field">
+                <span>First name</span>
+                <input className="task-input" type="text" value={form.first_name} onChange={handleChange('first_name')} />
+              </label>
+              <label className="profile-form__field">
+                <span>Last name</span>
+                <input className="task-input" type="text" value={form.last_name} onChange={handleChange('last_name')} />
+              </label>
+              <label className="profile-form__field profile-form__field--wide">
+                <span>Avatar URL</span>
+                <input className="task-input" type="url" value={form.image_url} onChange={handleChange('image_url')} placeholder="https://..." />
+              </label>
             </div>
             {error && <div className="auth-error">{error}</div>}
             {message && <div className="profile-form__message">{message}</div>}
@@ -228,10 +309,11 @@ export default function ProfilePage() {
                   setMessage('');
                   setError('');
                   setForm({
-                    full_name: profile?.full_name || user.fullName || '',
+                    username: profile?.username || credentials.username,
                     first_name: profile?.first_name || user.firstName || '',
                     last_name: profile?.last_name || user.lastName || '',
                     image_url: profile?.image_url || user.imageUrl || '',
+                    generated_password: profile?.generated_password || credentials.password,
                   });
                 }}
                 disabled={saving}

@@ -4,8 +4,10 @@ import { todayKey } from '../utils/dateUtils';
 import { getCompletionStats } from '../hooks/useTasks';
 import { fetchCollectionRecord, upsertCollectionRecord } from '../utils/apiClient';
 import useSupabaseToken from '../hooks/useSupabaseToken';
+import { isGuestModeEnabled } from '../utils/guestMode';
 
 async function saveSession(dateKey, data, userId, clerkToken) {
+  if (isGuestModeEnabled() || !userId) return;
   const id = `${userId || 'public'}::${dateKey}`;
   try {
     await upsertCollectionRecord('sessions', [id, dateKey], { id, user_id: userId, dateKey, ...data }, clerkToken);
@@ -37,7 +39,13 @@ export default function TodayProgress({ userId }) {
 
   useEffect(() => {
     let active = true;
-    if (!supabaseReady) return () => { active = false; };
+    if (isGuestModeEnabled()) {
+      if (active) setSession({ startTime: '', endTime: '' });
+      setStats(null);
+      return () => { active = false; };
+    }
+
+    if (!supabaseReady || !userId) return () => { active = false; };
     fetchCollectionRecord('sessions', [`${userId || 'public'}::${dateKey}`, dateKey], supabaseToken)
       .then(data => data || { startTime: '', endTime: '' })
       .then(data => { if (active) setSession({ startTime: data.startTime || '', endTime: data.endTime || '' }); })

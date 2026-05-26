@@ -17,6 +17,7 @@ import {
   cloneTasksFromDate,
 } from '../hooks/useTasks';
 import useSupabaseToken from '../hooks/useSupabaseToken';
+import { isGuestModeEnabled } from '../utils/guestMode';
 
 export default function DayPage() {
   const { dateKey } = useParams();
@@ -36,6 +37,13 @@ export default function DayPage() {
   // Load tasks on mount / dateKey change
   useEffect(() => {
     let active = true;
+    if (isGuestModeEnabled()) {
+      setTasks([]);
+      setYesterdayTasks([]);
+      setIsLoaded(true);
+      return () => { active = false; };
+    }
+
     if (!userId || !supabaseReady) return () => { active = false; };
     setIsLoaded(false);
     Promise.all([

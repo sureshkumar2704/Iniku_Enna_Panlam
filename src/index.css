@@ -2459,13 +2459,41 @@ body::before {
   color: #ffb4b4;
   border-color: rgba(255, 83, 83, 0.24);
   background: rgba(120, 16, 16, 0.18);
-  gap: 8px;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 50%;
 }
 
 .protected-header__signout:hover {
   border-color: rgba(255, 96, 96, 0.55);
   background: rgba(168, 22, 22, 0.28);
   color: #ffe2e2;
+}
+
+.protected-header__guestExit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(167, 139, 250, 0.24);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--accent-light);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition), background var(--transition), color var(--transition);
+}
+
+.protected-header__guestExit:hover {
+  transform: translateY(-1px);
+  border-color: rgba(167, 139, 250, 0.48);
+  background: rgba(167, 139, 250, 0.12);
+  color: var(--text-primary);
 }
 
 .protected-header__signout svg,
@@ -2638,14 +2666,19 @@ body::before {
 .profile-card__value-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  word-break: break-word;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: visible;
 }
 
 .profile-card__value-row strong {
+  flex: 0 1 auto;
   min-width: 0;
   font-size: 1rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .profile-edit-btn,
@@ -2773,6 +2806,11 @@ body::before {
   gap: 10px;
 }
 
+.profile-password-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .profile-password-toggle {
   display: inline-flex;
   align-items: center;
@@ -2832,9 +2870,9 @@ body::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   min-height: 42px;
-  width: 42px;
-  padding: 0;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid rgba(255, 83, 83, 0.24);
   background: rgba(120, 16, 16, 0.18);
@@ -2858,6 +2896,10 @@ body::before {
   height: 18px;
 }
 
+.profile-copy-btn {
+  flex-shrink: 0;
+}
+
 .profile-password-toggle:hover {
   box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.18);
 }
@@ -2870,6 +2912,29 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.auth-guest-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--accent-light);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
+}
+.auth-guest-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(167, 139, 250, 0.12);
+  border-color: rgba(167, 139, 250, 0.42);
+  color: var(--text-primary);
 }
 
 .profile-page--loading .profile-shell {
@@ -2952,8 +3017,7 @@ body::before {
   }
 
   .profile-card__value-row {
-    align-items: flex-start;
-    flex-direction: column;
+    gap: 8px;
   }
 
   .profile-password-row {
@@ -2974,7 +3038,8 @@ body::before {
   }
 
   .profile-form__actions > * {
-    align-items: flex-start;
+    width: 100%;
+    justify-content: center;
   }
 
 

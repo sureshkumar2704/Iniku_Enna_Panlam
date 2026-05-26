@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { fromDateKey } from '../utils/dateUtils';
 import { deleteCollectionRecord, fetchCollectionRecord, upsertCollectionRecord } from '../utils/apiClient';
 import useSupabaseToken from '../hooks/useSupabaseToken';
+import { isGuestModeEnabled } from '../utils/guestMode';
 
 export default function DestinationCountdown({ userId }) {
   const { token: supabaseToken, isReady: supabaseReady } = useSupabaseToken();
@@ -12,7 +13,15 @@ export default function DestinationCountdown({ userId }) {
 
   useEffect(() => {
     let active = true;
-    if (!supabaseReady) return () => { active = false; };
+    if (isGuestModeEnabled()) {
+      if (active) {
+        setDestDate('');
+        setIsEditing(true);
+      }
+      return () => { active = false; };
+    }
+
+    if (!supabaseReady || !userId) return () => { active = false; };
 
     // Recompute destination id if userId changes
     const destId = `${userId || 'public'}::main`;
@@ -36,6 +45,7 @@ export default function DestinationCountdown({ userId }) {
     if (tempDate) {
       setDestDate(tempDate);
       setIsEditing(false);
+      if (isGuestModeEnabled()) return;
       try {
         await upsertCollectionRecord('destination', [destinationId, 'main'], { id: destinationId, user_id: userId, date: tempDate }, supabaseToken);
       } catch {}
@@ -46,6 +56,7 @@ export default function DestinationCountdown({ userId }) {
     setDestDate('');
     setTempDate('');
     setIsEditing(true);
+    if (isGuestModeEnabled()) return;
     try {
       await deleteCollectionRecord('destination', [destinationId, 'main'], supabaseToken);
     } catch {}

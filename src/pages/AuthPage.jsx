@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSignIn, useSignUp } from '@clerk/clerk-react';
 import AppBrand from '../components/AppBrand';
 import { deriveAccountCredentials } from '../utils/accountCredentials';
+import { disableGuestMode, enableGuestMode } from '../utils/guestMode';
 
 const clerkErrorMessages = {
   form_identifier_not_found: 'No account was found with that email or username.',
@@ -88,9 +89,17 @@ export default function AuthPage({ mode }) {
   const [emailVerificationState, setEmailVerificationState] = React.useState('idle');
   const generatedCredentials = React.useMemo(() => deriveAccountCredentials(email), [email]);
 
+  const continueAsGuest = () => {
+    enableGuestMode();
+    setError('');
+    navigate('/');
+  };
+
   const handleOAuth = async (strategy) => {
     try {
       if (!signUpLoaded) return;
+
+      disableGuestMode();
 
       await signUp.authenticateWithRedirect({
         strategy,
@@ -295,6 +304,10 @@ export default function AuthPage({ mode }) {
 
               <div className="auth-or">or</div>
 
+              <button type="button" className="auth-guest-btn" onClick={continueAsGuest}>
+                Continue as guest
+              </button>
+
               {isSignIn ? (
                 <form
                   onSubmit={async (e) => {
@@ -302,6 +315,7 @@ export default function AuthPage({ mode }) {
                     setError('');
                     setLoading(true);
                     try {
+                      disableGuestMode();
                       if (!signInLoaded) throw new Error('Auth not loaded');
                       const result = await signIn.create({ identifier: email, password });
 
@@ -352,6 +366,7 @@ export default function AuthPage({ mode }) {
                   onSubmit={async (e) => {
                     e.preventDefault();
                     setError('');
+                    disableGuestMode();
 
                     if (authStep === 'email') {
                       await sendEmailVerificationCode();

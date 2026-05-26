@@ -1,12 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
 import { fetchCollectionRecord, upsertCollectionRecord } from '../utils/apiClient';
 import { createSupabaseClient } from '../utils/supabase/client';
+import { isGuestModeEnabled } from '../utils/guestMode';
 
 function scopedId(userId, key) {
   return userId ? `${userId}::${key}` : key;
 }
 
 export async function getTasksForDate(dateKey, userId, clerkToken) {
+  if (isGuestModeEnabled() || !userId) return [];
   try {
     const record = await fetchCollectionRecord('tasks', [scopedId(userId, dateKey), dateKey], clerkToken);
     return record?.items || [];
@@ -17,6 +19,7 @@ export async function getTasksForDate(dateKey, userId, clerkToken) {
 }
 
 export async function saveTasksForDate(dateKey, tasks, userId, clerkToken) {
+  if (isGuestModeEnabled() || !userId) return;
   const id = scopedId(userId, dateKey);
   try {
     await upsertCollectionRecord('tasks', [id, dateKey], { id, user_id: userId, dateKey, items: tasks }, clerkToken);
@@ -56,6 +59,7 @@ export async function getCompletionStats(dateKey, userId, clerkToken) {
 }
 
 export async function getAllStats(userId, clerkToken) {
+  if (isGuestModeEnabled() || !userId) return {};
   try {
     const supabase = createSupabaseClient(clerkToken);
     const { data: all, error } = await supabase.from('tasks').select('*');
@@ -75,6 +79,7 @@ export async function getAllStats(userId, clerkToken) {
 }
 
 export async function getBacklog(userId, clerkToken) {
+  if (isGuestModeEnabled() || !userId) return [];
   try {
     const supabase = createSupabaseClient(clerkToken);
     const { data, error } = await supabase.from('backlog').select('*').eq('user_id', userId || '');
@@ -85,6 +90,7 @@ export async function getBacklog(userId, clerkToken) {
 }
 
 export async function addToBacklog(text, userId, clerkToken) {
+  if (isGuestModeEnabled() || !userId) return;
   try {
     const supabase = createSupabaseClient(clerkToken);
     const item = { id: uuidv4(), user_id: userId, text, done: false, createdAt: new Date().toISOString() };
@@ -94,6 +100,7 @@ export async function addToBacklog(text, userId, clerkToken) {
 }
 
 export async function updateBacklogItem(item, clerkToken) {
+  if (isGuestModeEnabled()) return;
   try {
     const supabase = createSupabaseClient(clerkToken);
     const { error } = await supabase.from('backlog').update(item).eq('id', item.id);
@@ -102,6 +109,7 @@ export async function updateBacklogItem(item, clerkToken) {
 }
 
 export async function deleteBacklogItem(id, clerkToken) {
+  if (isGuestModeEnabled()) return;
   try {
     const supabase = createSupabaseClient(clerkToken);
     const { error } = await supabase.from('backlog').delete().eq('id', id);
