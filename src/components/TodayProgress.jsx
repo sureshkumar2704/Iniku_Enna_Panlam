@@ -113,21 +113,22 @@ export default function TodayProgress({ userId }) {
       {/* Time display strip */}
       {(session.startTime || session.endTime) && (
         <div className="tp-strip">
-          {session.startTime && (
+          {session.startTime ? (
             <span className="tp-strip-item tp-strip-item--start">
               <span className="tp-strip-dot" /> {fmt12(session.startTime)}
             </span>
+          ) : (
+            <span className="tp-strip-item tp-strip-item--placeholder">Start time not set</span>
           )}
-          {duration && (
-            <span className="tp-strip-bar" style={{ flex: duration.total }}>
-              <span className="tp-strip-fill" />
-              <span className="tp-strip-dur-label">{duration.hours > 0 ? `${duration.hours}h ` : ''}{duration.mins}m</span>
-            </span>
-          )}
-          {session.endTime && (
+
+          <span className="tp-strip-arrow" aria-hidden="true">→</span>
+
+          {session.endTime ? (
             <span className="tp-strip-item tp-strip-item--end">
               {fmt12(session.endTime)} <span className="tp-strip-dot" />
             </span>
+          ) : (
+            <span className="tp-strip-item tp-strip-item--placeholder">End time not set</span>
           )}
         </div>
       )}

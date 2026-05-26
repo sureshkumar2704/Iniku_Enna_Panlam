@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { getBacklog, addToBacklog, updateBacklogItem, deleteBacklogItem } from '../hooks/useTasks';
@@ -12,6 +12,7 @@ export default function TodoPage() {
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const lastTextTapRef = useRef({ id: null, time: 0 });
 
   useEffect(() => {
     if (!supabaseReady) return;
@@ -50,6 +51,19 @@ export default function TodoPage() {
     setEditValue(item.text);
   }
 
+  function handleTextTap(item) {
+    const now = Date.now();
+    const lastTap = lastTextTapRef.current;
+
+    if (lastTap.id === item.id && now - lastTap.time < 420) {
+      startEdit(item);
+      lastTextTapRef.current = { id: null, time: 0 };
+      return;
+    }
+
+    lastTextTapRef.current = { id: item.id, time: now };
+  }
+
   async function saveEdit(item) {
     if (editValue.trim() && editValue !== item.text) {
       await updateBacklogItem({ ...item, text: editValue.trim() }, supabaseToken);
@@ -77,7 +91,7 @@ export default function TodoPage() {
           <h2 className="day-title">Global To-Do List</h2>
           <p className="day-subtitle">Deadline-free pending tasks</p>
         </div>
-        <button className="btn btn-ghost" onClick={clearCompleted} style={{ color: 'var(--color-fail)' }}>
+        <button className="btn btn-ghost todo-clear-btn" onClick={clearCompleted} style={{ color: 'var(--color-fail)' }}>
           🧹 Clear Completed
         </button>
       </header>
@@ -128,13 +142,28 @@ export default function TodoPage() {
                         autoFocus
                       />
                     ) : (
-                      <span className="todo-text" onDoubleClick={() => startEdit(item)}>
+                      <span
+                        className="todo-text"
+                        onClick={() => handleTextTap(item)}
+                        onDoubleClick={() => startEdit(item)}
+                      >
                         {item.text}
                       </span>
                     )}
 
                     <div className="todo-actions">
-                      <button className="todo-btn todo-btn--edit" onClick={() => startEdit(item)}>✏️</button>
+                      <button
+                        className="todo-btn todo-btn--edit"
+                        onClick={() => startEdit(item)}
+                        aria-label={`Edit ${item.text}`}
+                        title="Edit task"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M4 18.7 5.3 20l4.4-.9 9.1-9.1-4.8-4.8-9.1 9.1L4 18.7Z" />
+                          <path d="m15.3 3.9 4.8 4.8.9-.9a2 2 0 0 0 0-2.8L19 3a2 2 0 0 0-2.8 0l-.9.9Z" />
+                          <path d="M13.9 6.7 17.3 10" />
+                        </svg>
+                      </button>
                       <button className="todo-btn todo-btn--del" onClick={() => handleDelete(item.id)}>🗑</button>
                     </div>
                   </div>

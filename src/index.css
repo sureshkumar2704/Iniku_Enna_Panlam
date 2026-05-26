@@ -87,11 +87,12 @@ body::before {
 
 /* ── Buttons ── */
 .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    /* allow wrapping so the duration card won't overlap when space is tight */
+    flex-wrap: wrap;
   border: none;
   font-family: var(--font-body);
   font-size: 0.9rem;
@@ -104,7 +105,7 @@ body::before {
 .btn-primary {
   background: linear-gradient(135deg, var(--accent-primary), #c4b5fd);
   color: #fff;
-  box-shadow: 0 0 15px var(--accent-glow);
+    margin: 0 6px;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -160,6 +161,46 @@ body::before {
   max-width: 900px;
   margin: 0 auto;
   padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.calendar-backlog-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  width: auto;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  background: rgba(20, 20, 30, 0.72);
+  color: var(--accent-light);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: background var(--transition), border-color var(--transition), color var(--transition), transform var(--transition);
+}
+.calendar-backlog-btn:hover {
+  background: rgba(167, 139, 250, 0.13);
+  border-color: rgba(167, 139, 250, 0.48);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.calendar-backlog-btn svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
 }
 .app-logo {
   display: flex;
@@ -504,6 +545,41 @@ body::before {
   flex-wrap: wrap;
 }
 
+.day-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 14px;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.day-action-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.day-action-btn--add {
+  background: linear-gradient(135deg, #8f6df8, #c7b6ff);
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(167, 139, 250, 0.22);
+}
+
+.day-action-btn--copy {
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.26);
+  color: var(--accent-light);
+}
+
 /* Day main */
 .day-main {
   flex: 1;
@@ -545,6 +621,13 @@ body::before {
   animation: slideIn 0.25s ease;
   position: relative;
   will-change: transform, opacity;
+}
+
+/* Wrapper helpers: keep DOM wrappers but let grid place their children on desktop */
+.task-row__top,
+.task-row__middle,
+.task-row__bottom {
+  display: contents;
 }
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(-10px); }
@@ -1035,32 +1118,26 @@ body::before {
 .tp-strip {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 12px 18px;
   font-size: 0.85rem;
   overflow: hidden;
+  flex-wrap: nowrap;
 }
 .tp-strip-item { display: flex; align-items: center; gap: 8px; white-space: nowrap; color: var(--text-secondary); font-weight: 600; flex-shrink: 0; }
 .tp-strip-item--start { color: var(--accent-light); }
 .tp-strip-item--end   { color: var(--color-done); }
-.tp-strip-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
-.tp-strip-bar {
-  flex: 1;
-  position: relative;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 99px;
-  margin: 0 16px;
-  min-width: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+.tp-strip-item--placeholder { color: var(--text-muted); font-weight: 500; }
+.tp-strip-arrow {
+  color: var(--accent-primary);
+  font-weight: 800;
+  flex-shrink: 0;
 }
-.tp-strip-fill { position: absolute; inset: 0; background: linear-gradient(90deg, var(--accent-primary), var(--color-done)); border-radius: 99px; box-shadow: 0 0 15px var(--accent-glow); }
-.tp-strip-dur-label { position: relative; z-index: 1; font-size: 0.72rem; font-weight: 800; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); white-space: nowrap; }
+.tp-strip-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
 
 .tp-tasks { display: flex; flex-direction: column; gap: 12px; }
 .tp-tasks-header { display: flex; justify-content: space-between; align-items: center; }
@@ -1126,10 +1203,10 @@ body::before {
   align-items: center;
   gap: 16px;
   min-width: 320px;
-  animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: modalInPopup 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes modalIn {
+@keyframes modalInPopup {
   from { opacity: 0; transform: translate(-50%, -40%) scale(0.9); }
   to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
@@ -1185,6 +1262,7 @@ body::before {
     gap: 12px;
     padding: 16px;
   }
+  .day-back-btn { justify-self: start; }
   .day-header-right { grid-column: 2; text-align: right; }
   .task-list-header,
   .task-row {
@@ -1192,7 +1270,22 @@ body::before {
     gap: 6px;
     padding: 10px 10px;
   }
-  .day-action-bar { padding: 16px 16px 0; }
+  .day-action-bar {
+    padding: 16px 16px 0;
+    gap: 10px;
+  }
+
+  .day-action-btn {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+  }
+
+  .day-action-btn svg {
+    width: 17px;
+    height: 17px;
+  }
   .day-main { padding: 16px 16px 40px; }
   .calendar-grid { padding: 10px; gap: 2px; }
   .calendar-cell { min-height: 44px; font-size: 0.85rem; }
@@ -1203,20 +1296,58 @@ body::before {
 }
 @media (max-width: 520px) {
   .task-list-header { display: none; }
+
+  /* Compact task rows: switch to wrapping flex layout for better mobile ergonomics */
   .task-row {
-    grid-template-columns: 28px 40px 1fr 32px;
-    grid-template-rows: auto auto auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px;
+    grid-template-columns: none;
+    grid-template-rows: none;
   }
-  .task-input--time { grid-column: span 1; }
-  .task-input--topics { grid-column: 1 / -2; }
-  .tp-times { flex-direction: column; align-items: flex-start; }
-  .tp-arrow { transform: rotate(90deg); padding-bottom: 0; }
+
+  /* Top line: status circle, task name, delete button */
+  .task-row__top { display: flex; align-items: center; gap: 10px; width: 100%; }
+  /* show serial number on mobile and keep strict order */
+  .task-num { display: block; flex: 0 0 28px; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
+  .task-status-btn { flex: 0 0 36px; width: 36px; height: 36px; }
+  .task-input--name { flex: 1 1 auto; min-width: 0; font-size: 0.96rem; padding: 8px 10px; height: 44px; }
+  .task-delete-btn { flex: 0 0 34px; width: 34px; height: 34px; margin-left: 8px; }
+
+  /* Place time pickers side-by-side and keep them compact */
+  /* Middle: start/end next row, side-by-side */
+  .task-row__middle { display: flex; gap: 8px; width: 100%; margin-top: 8px; }
+  .task-time-group { display: flex; gap: 8px; align-items: center; flex: 1 1 50%; }
+
+  /* Make clock triggers smaller inside task rows */
+  .task-row .cp-trigger { min-width: 76px; padding: 6px 8px; font-size: 0.9rem; border-radius: 10px; text-align: center; }
+
+  .task-row .cp-label { display: none; }
+
+  /* Bottom: topics full width */
+  .task-input--topics, .topics-list-container { width: 100%; margin-top: 8px; font-size: 0.9rem; }
+
+  .tp-times { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+  .tp-times > .cp-wrap { flex: 1 1 calc(50% - 8px); min-width: 0; }
+  .tp-arrow { transform: none; padding-bottom: 0; }
 }
 
 /* Extra small screens: tighten spacing, scale brand, enable calendar scroll */
 @media (max-width: 480px) {
   .app-header { padding: 10px 0; }
   .app-header-inner { padding: 0 12px; }
+  .calendar-backlog-btn {
+    min-height: 38px;
+    padding: 0 12px;
+    border-radius: 11px;
+    font-size: 0.88rem;
+  }
+  .calendar-backlog-btn svg {
+    width: 16px;
+    height: 16px;
+  }
   .app-logo { gap: 10px; }
   .app-logo-icon { font-size: 2rem; }
 
@@ -1227,6 +1358,18 @@ body::before {
 
   .app-title { font-size: 1.15rem; }
 
+  /* Extra small mobile font adjustments */
+  html { font-size: 13px; }
+  .auth-panel-title { font-size: 1.25rem; }
+  .app-brand__title { font-size: 1.15rem; }
+  .auth-panel-head p, .auth-switch-text, .auth-benefit span, .auth-field__status { font-size: 0.9rem; }
+  .auth-btn { font-size: 0.9rem; }
+  .task-input, .auth-field { font-size: 0.9rem; }
+
+  .tp-times { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+  .tp-times > .cp-wrap { flex: 1 1 calc(50% - 8px); min-width: 0; }
+  .tp-arrow { transform: none; padding-bottom: 0; }
+
   /* Calendar: allow horizontal scrolling if needed and reduce cell sizes */
   .calendar-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .calendar-grid { grid-template-columns: repeat(7, minmax(56px, 1fr)); gap: 4px; padding: 8px; }
@@ -1235,10 +1378,42 @@ body::before {
   /* Day header stacks and tightens */
   .day-header { grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 8px; padding: 12px; }
   .day-header-center { grid-column: 1 / -1; }
+  .day-back-btn {
+    justify-self: start;
+    align-self: start;
+    width: auto;
+    max-width: max-content;
+  }
 
-  /* Task rows: stack secondary columns to improve readability */
-  .task-row { grid-template-columns: 32px 1fr 44px; grid-template-rows: auto auto; gap: 8px; padding: 10px; }
-  .task-row > *:nth-child(3) { grid-row: 1 / span 2; }
+  .day-action-bar {
+    justify-content: flex-start;
+  }
+
+  .day-action-btn {
+    flex: 0 1 auto;
+    white-space: nowrap;
+  }
+
+  /* Task rows: compact flex layout for extra-small screens */
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px;
+  }
+
+  .task-row__top { width: 100%; display:flex; align-items:center; gap:8px; }
+  .task-num { display: block; flex: 0 0 26px; font-size: 0.88rem; }
+  .task-status-btn { flex: 0 0 34px; width: 34px; height: 34px; }
+  .task-input--name { flex: 1 1 auto; min-width: 0; font-size: 0.95rem; padding: 6px 8px; height: 40px; }
+  .task-delete-btn { flex: 0 0 32px; width: 32px; height: 32px; margin-left: 8px; }
+
+  .task-row__middle { width: 100%; display:flex; gap:6px; margin-top:6px; }
+  .task-time-group { flex: 1 1 50%; }
+  .task-row .cp-trigger { min-width: 68px; padding: 6px 6px; font-size: 0.86rem; }
+
+  .task-row__bottom { width: 100%; margin-top: 6px; font-size: 0.9rem; }
 
   /* Modal and popups scale down */
   .modal-box, .cp-popup { max-width: 94%; padding: 18px; }
@@ -1417,6 +1592,16 @@ body::before {
 .todo-actions { display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s ease; }
 .todo-item:hover .todo-actions { opacity: 1; }
 .todo-btn { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px; border-radius: var(--radius-sm); transition: all 0.2s ease; }
+.todo-btn--edit { color: var(--accent-light); }
+.todo-btn--edit svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .todo-btn:hover { background: var(--bg-hover); }
 
 .todo-empty { padding: 80px 0; text-align: center; color: var(--text-muted); }
@@ -2093,6 +2278,12 @@ body::before {
 .protected-layout__user {
   display: flex;
   align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.protected-header .app-brand {
+  flex-shrink: 0;
 }
 
 .auth-clerk-card {
@@ -2143,12 +2334,12 @@ body::before {
   .auth-copy {
     min-height: auto;
     padding: 24px;
-    order: 2;
+    order: 1;
     justify-content: center;
   }
 
   .auth-panel {
-    order: 1;
+    order: 2;
   }
 
   .auth-visual {
@@ -2161,8 +2352,8 @@ body::before {
   }
 
   .protected-header {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
   }
 }
 
@@ -2198,6 +2389,14 @@ body::before {
     font-size: 1.75rem;
   }
 
+  /* Mobile font scaling */
+  html { font-size: 14px; }
+  .auth-panel-title { font-size: 1.45rem; }
+  .app-brand__title { font-size: 1.55rem; }
+  .auth-panel-head p, .auth-switch-text, .auth-benefit span, .auth-field__status { font-size: 0.95rem; }
+  .auth-btn { font-size: 0.92rem; }
+  .task-input, .auth-field { font-size: 0.95rem; }
+
   .auth-copy .app-brand__subtitle,
   .auth-highlights,
   .auth-visual__card {
@@ -2226,13 +2425,83 @@ body::before {
   }
 
   .auth-oauth-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
 
   .auth-form-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
+
+  .auth-panel-actions {
+    gap: 16px;
+  }
+
+  .auth-switch-text {
+    position: static;
+    transform: none;
+    justify-self: center;
+    margin: 4px 0 0;
+    order: 99;
+  }
+
+  /* TodayProgress: keep time pickers readable and move duration below on narrow screens */
+  .tp-times {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: end;
+    gap: 6px;
+  }
+
+  .tp-times > .cp-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .tp-times .cp-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+  }
+
+  .cp-trigger {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.98rem;
+  }
+
+  .tp-arrow {
+    flex: 0 0 auto;
+    margin: 0 6px;
+    font-size: 1.25rem;
+    color: var(--accent-primary);
+    opacity: 0.95;
+  }
+
+  /* Make duration card smaller on mobile to avoid overlap */
+  .tp-duration {
+    grid-column: 1 / -1;
+    justify-self: center;
+    justify-content: center;
+    width: min(100%, 240px);
+    min-width: 110px;
+    padding: 10px 14px;
+    margin-left: 0;
+  }
+  .tp-duration-value { font-size: 1.4rem; }
+  .tp-duration-value em { font-size: 0.85rem; }
+
+  /* Tighter strip */
+  .tp-strip { padding: 10px 12px; font-size: 0.82rem; }
+  .tp-strip-item { gap: 6px; }
 
   .protected-header {
     padding: 12px 14px;
@@ -2243,3 +2512,235 @@ body::before {
 
 .todo-input-group { display: flex; gap: 12px; }
 .todo-add-btn { padding: 0 24px; white-space: nowrap; font-weight: 600; }
+
+@media (max-width: 700px) {
+  .todo-page .day-header {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 12px;
+    padding: 14px 16px 16px;
+  }
+
+  .todo-page .day-title-wrap {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    text-align: left;
+  }
+
+  .todo-page .day-title {
+    font-size: 1.85rem;
+    line-height: 1.05;
+    letter-spacing: 0;
+  }
+
+  .todo-page .day-subtitle {
+    font-size: 1rem;
+    line-height: 1.35;
+    color: var(--text-secondary);
+  }
+
+  .todo-page .btn {
+    justify-content: center;
+    border-radius: 12px;
+    padding: 9px 12px;
+  }
+
+  .todo-clear-btn {
+    justify-self: end;
+    border-color: rgba(255, 64, 129, 0.28);
+    background: rgba(255, 64, 129, 0.07);
+    font-size: 0.88rem;
+  }
+
+  .todo-main {
+    margin: 22px auto;
+    padding: 0 14px 48px;
+  }
+
+  .todo-card {
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(20, 20, 28, 0.92), rgba(9, 9, 16, 0.9));
+  }
+
+  .todo-input-section {
+    padding: 18px;
+  }
+
+  .todo-input-group {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .todo-main-input {
+    min-width: 0;
+    border-radius: 16px;
+    padding: 13px 15px;
+    font-size: 1rem;
+  }
+
+  .todo-add-btn {
+    min-height: 50px;
+    padding: 0 18px;
+    border-radius: 14px;
+    font-size: 0.86rem;
+    letter-spacing: 0.04em;
+  }
+
+  .todo-item {
+    gap: 12px;
+    padding: 16px 18px;
+  }
+
+  .todo-check {
+    width: 30px;
+    height: 30px;
+  }
+
+  .todo-text,
+  .todo-edit-input {
+    min-width: 0;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .todo-actions {
+    opacity: 1;
+    gap: 4px;
+  }
+
+  .todo-btn {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .todo-btn--edit {
+    color: var(--accent-light);
+    border: 1px solid rgba(167, 139, 250, 0.22);
+  }
+
+  .todo-btn--edit svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .todo-footer {
+    padding: 14px 18px;
+    gap: 10px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .todo-page .day-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px 16px;
+  }
+
+  .todo-page .day-back-btn {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    width: auto;
+    min-height: 40px;
+    padding: 7px 12px;
+    font-size: 0.86rem;
+  }
+
+  .todo-clear-btn {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    width: auto;
+    min-height: 40px;
+    padding: 7px 10px;
+    font-size: 0.84rem;
+  }
+
+  .todo-page .day-title-wrap {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    text-align: left;
+  }
+
+  .todo-page .day-title {
+    font-size: 1.65rem;
+  }
+
+  .todo-page .day-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .todo-main {
+    margin: 18px auto;
+    width: min(80vw, 560px);
+    padding: 0 0 40px;
+  }
+
+  .todo-input-section {
+    padding: 14px;
+  }
+
+  .todo-input-group {
+    grid-template-columns: minmax(0, 1fr) 124px;
+    gap: 10px;
+  }
+
+  .todo-main-input {
+    min-height: 50px;
+    padding: 12px 14px;
+    text-align: left;
+  }
+
+  .todo-add-btn {
+    width: auto;
+    min-height: 48px;
+    padding: 0 14px;
+  }
+
+  .todo-item {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .todo-text {
+    overflow-wrap: anywhere;
+  }
+
+  .todo-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px;
+  }
+}
+
+
+/* Additional mobile tweaks for back button sizing */
+@media (max-width: 520px) {
+  .day-back-btn {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    border-radius: 10px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .day-back-btn {
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    border-radius: 10px;
+    min-width: 40px;
+  }
+}

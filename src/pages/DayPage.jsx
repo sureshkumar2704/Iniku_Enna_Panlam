@@ -149,17 +149,27 @@ export default function DayPage() {
       <div className="day-action-bar">
         <button
           id="add-task-btn"
-          className="btn btn-primary"
+          className="btn btn-primary day-action-btn day-action-btn--add"
           onClick={addTask}
         >
-          + Add Task
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+          </svg>
+          Add Task
         </button>
         <button
           id="copy-yesterday-btn"
-          className="btn btn-secondary"
+          className="btn btn-secondary day-action-btn day-action-btn--copy"
           onClick={() => setShowModal(true)}
         >
-          ⎘ Copy Yesterday
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M8 8h10v10H8z" />
+            <path d="M6 16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            <path d="M11 13h4" />
+            <path d="M13 11v4" />
+          </svg>
+          Copy Yesterday
         </button>
       </div>
 

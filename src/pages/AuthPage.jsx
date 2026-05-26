@@ -561,14 +561,16 @@ export default function AuthPage({ mode }) {
                   )}
                 </form>
               )}
+
+              <p className="auth-switch-text">
+                {isSignIn ? 'New here?' : 'Already have an account?'}{' '}
+                <Link to={isSignIn ? '/sign-up' : '/sign-in'}>{isSignIn ? 'Create an account' : 'Log in'}</Link>
+              </p>
             </div>
           </div>
         </section>
 
-        <p className="auth-switch-text">
-          {isSignIn ? 'New here?' : 'Already have an account?'}{' '}
-          <Link to={isSignIn ? '/sign-up' : '/sign-in'}>{isSignIn ? 'Create an account' : 'Log in'}</Link>
-        </p>
+        
       </div>
     </div>
   );

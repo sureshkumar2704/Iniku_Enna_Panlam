@@ -24,67 +24,66 @@ export default function TaskRow({ task, index, onChange, onDelete }) {
 
   return (
     <div className={`task-row task-row--${task.status}`}>
-      {/* Row number */}
-      <span className="task-num">{index + 1}</span>
+      <div className="task-row__top">
+        <span className="task-num">{index + 1}</span>
 
-      {/* Status toggle */}
-      <button
-        className={`task-status-btn task-status-btn--${task.status}`}
-        onClick={cycleStatus}
-        title={`Status: ${statusCfg.label} — Click to cycle`}
-        aria-label="Toggle task status"
-      >
-        {statusCfg.icon}
-      </button>
+        <button
+          className={`task-status-btn task-status-btn--${task.status}`}
+          onClick={cycleStatus}
+          title={`Status: ${statusCfg.label} — Click to cycle`}
+          aria-label="Toggle task status"
+        >
+          {statusCfg.icon}
+        </button>
 
-      {/* Task name */}
-      <input
-        type="text"
-        className="task-input task-input--name task-input--small"
-        placeholder="Task name…"
-        value={task.name}
-        onChange={(e) => handleChange('name', e.target.value)}
-        aria-label="Task name"
-      />
+        <input
+          type="text"
+          className="task-input task-input--name task-input--small"
+          placeholder="Task name…"
+          value={task.name}
+          onChange={(e) => handleChange('name', e.target.value)}
+          aria-label="Task name"
+        />
 
-      {/* Start time */}
-      <div className="task-time-group">
-        <ClockPicker
-          value={task.startTime}
-          onChange={(v) => handleChange('startTime', v)}
-          placeholder="Set start"
-          label=""
+        <button
+          className="task-delete-btn"
+          onClick={() => onDelete(task.id)}
+          title="Delete task"
+          aria-label="Delete task"
+        >
+          🗑
+        </button>
+      </div>
+
+      <div className="task-row__middle">
+        <div className="task-time-group">
+          <ClockPicker
+            value={task.startTime}
+            onChange={(v) => handleChange('startTime', v)}
+            placeholder="Set start"
+            label=""
+            disabled={!isEditable}
+          />
+        </div>
+
+        <div className="task-time-group">
+          <ClockPicker
+            value={task.endTime}
+            onChange={(v) => handleChange('endTime', v)}
+            placeholder="Set end"
+            label=""
+            disabled={!isEditable}
+          />
+        </div>
+      </div>
+
+      <div className="task-row__bottom">
+        <TopicsList
+          topics={task.topics}
+          onChange={(v) => handleChange('topics', v)}
           disabled={!isEditable}
         />
       </div>
-
-      {/* End time */}
-      <div className="task-time-group">
-        <ClockPicker
-          value={task.endTime}
-          onChange={(v) => handleChange('endTime', v)}
-          placeholder="Set end"
-          label=""
-          disabled={!isEditable}
-        />
-      </div>
-
-      {/* Topics learned */}
-      <TopicsList
-        topics={task.topics}
-        onChange={(v) => handleChange('topics', v)}
-        disabled={!isEditable}
-      />
-
-      {/* Delete */}
-      <button
-        className="task-delete-btn"
-        onClick={() => onDelete(task.id)}
-        title="Delete task"
-        aria-label="Delete task"
-      >
-        🗑
-      </button>
     </div>
   );
 }

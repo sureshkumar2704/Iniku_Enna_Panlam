@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
-import AppBrand from '../components/AppBrand';
 import CalendarGrid from '../components/CalendarGrid';
 import TodayProgress from '../components/TodayProgress';
 import DestinationCountdown from '../components/DestinationCountdown';
@@ -34,9 +33,16 @@ export default function CalendarPage() {
       {/* App header */}
       <header className="app-header">
         <div className="app-header-inner">
-          <AppBrand />
-          <button className="btn btn-secondary" onClick={() => navigate('/todos')}>
-            🎯 Global To-Do
+          <button className="calendar-backlog-btn" onClick={() => navigate('/todos')}>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M8 6h12" />
+              <path d="M8 12h12" />
+              <path d="M8 18h12" />
+              <path d="M4 6h.01" />
+              <path d="M4 12h.01" />
+              <path d="M4 18h.01" />
+            </svg>
+            Task Backlog
           </button>
         </div>
       </header>
