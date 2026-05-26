@@ -15,4 +15,4 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
+  # Do not force this redirect — allow static assets and functions to be served normally
