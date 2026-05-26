@@ -13,11 +13,16 @@ export default function DestinationCountdown({ userId }) {
   useEffect(() => {
     let active = true;
     if (!supabaseReady) return () => { active = false; };
-    fetchCollectionRecord('destination', [destinationId, 'main'], supabaseToken)
+
+    // Recompute destination id if userId changes
+    const destId = `${userId || 'public'}::main`;
+
+    fetchCollectionRecord('destination', [destId, 'main'], supabaseToken)
       .then(data => {
         if (active) {
           if (data && data.date) {
             setDestDate(data.date);
+            setIsEditing(false);
           } else {
             setIsEditing(true);
           }
@@ -25,7 +30,7 @@ export default function DestinationCountdown({ userId }) {
       })
       .catch(() => { if (active) setIsEditing(true); });
     return () => { active = false; };
-  }, []);
+  }, [supabaseReady, supabaseToken, userId]);
 
   async function handleSave() {
     if (tempDate) {
